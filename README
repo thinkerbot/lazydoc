@@ -74,7 +74,11 @@ In addition, individual lines of code may be registered and resolved by Lazydoc:
   comment.subject       # => "  def method_one"
   comment.content       # => [["comment content for a code comment", "may similarly span multiple lines"]]
 
-With these basics in mind, here are some details...
+Check out these links for development, and bug tracking.
+
+* Website[http://tap.rubyforge.org/lazydoc]
+* Github[http://github.com/bahuvrihi/lazydoc/tree/master]
+* {Google Group}[http://groups.google.com/group/ruby-on-tap]
 
 == Usage
 
@@ -154,20 +158,6 @@ from hiding the example):
   #++
   #
   # * This line is also visible in RDoc.
-
-Here is the same text, for comparison if you are reading this as RDoc:
-
-:startdoc::Const::Name::one hidden in RDoc
-* This line is visible in RDoc.
-:startdoc::Const::Name::one-
-
--- 
-Const::Name::two
-You can hide attribute comments like this.
-Const::Name::two-
-++
-
-* This line is also visible in RDoc.
 
 As a side note, <tt>Const::Name::key</tt> is not a reference to the 'key' 
 constant (as that would be invalid).  In *very* idiomatic ruby
