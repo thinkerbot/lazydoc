@@ -1,5 +1,3 @@
-require 'lazydoc'
-
 module Lazydoc
   # Attributes adds methods to declare class-level accessors
   # for Lazydoc attributes.  The source_file for the class must

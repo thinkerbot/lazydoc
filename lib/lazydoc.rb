@@ -1,6 +1,7 @@
 require 'lazydoc/document'
 
 module Lazydoc
+  autoload(:Attributes, 'lazydoc/attributes')
   
   # A regexp matching an attribute start or end.  After a match:
   #
