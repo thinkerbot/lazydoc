@@ -105,7 +105,7 @@ module Lazydoc
         else raise TypeError, "can't convert #{str.class} into StringScanner or String"
         end
     
-        comment = Comment.new
+        comment = self.new
         while scanner.scan(/\r?\n?[ \t]*#[ \t]?(([ \t]*).*?)\r?$/)
           fragment = scanner[1]
           indent = scanner[2]

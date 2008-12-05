@@ -103,17 +103,40 @@ class MethodTest < Test::Unit::TestCase
   end
   
   #
-  # resolve test
+  # documentation test
   #
   
-  def test_resolve_resolves_method_name_args_and_trailing_comment
-    lines = [
-      "# comment parsed",
-      "# up from line number",
-      "def method_name(a,b,&c) # trailing comment"]
-
-    m.line_number = 2
-    m.resolve(lines)
+  def test_documentation
+    sample_method = %Q{
+    # This is the comment body
+    def method_name(a, b='default', &c) # trailing comment
+    end
+    }
+  
+    m = Method.parse(sample_method)
+    assert_equal "method_name", m.method_name
+    assert_equal ["a", "b='default'", "&c"], m.arguments
+    assert_equal "trailing comment", m.trailer
+    assert_equal "This is the comment body", m.to_s
+  end
+  
+  #
+  # initialize test
+  #
+  
+  def test_method_initialize
+    m = Method.new
+    assert_equal nil, m.method_name
+    assert_equal [], m.arguments
+    assert_equal nil, m.trailer
+  end
+  
+  #
+  # subject= test
+  #
+  
+  def test_setting_subject_sets_method_name_args_and_trailing_comment
+    m.subject = "def method_name(a,b,&c) # trailing comment"
     assert_equal "method_name", m.method_name
     assert_equal ["a", "b", "&c"], m.arguments
     assert_equal "trailing comment", m.trailer
