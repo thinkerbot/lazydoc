@@ -552,5 +552,32 @@ Skipped::key
     doc = Lazydoc['/path/for/non_existant_doc']
     assert Lazydoc.registry.include?(doc)
   end
+  
+  #
+  # register_caller test
+  #
+  
+  def test_register_caller_registers_caller
+    tempfile = Tempfile.new('register___test')
+    tempfile << %Q{
+module RegisterCaller
+  module_function
+  def method
+    Lazydoc.register_caller
+  end
+end
 
+# this is the line that gets registered
+RegisterCaller.method
+}
+    tempfile.close
+    load(tempfile.path)
+
+    lazydoc = Lazydoc[tempfile.path]
+    lazydoc.resolve
+    
+    c = lazydoc.comments[0]
+    assert_equal "RegisterCaller.method", c.subject
+    assert_equal "this is the line that gets registered", c.to_s
+  end
 end

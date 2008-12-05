@@ -49,6 +49,26 @@ module Lazydoc
     Lazydoc[source_file].register(line_number, comment_class)
   end
   
+  # Registers the method at the specified index in the call stack, to
+  # the file where the method was called.  Using the default index of
+  # 1, register_caller registers the caller of the method where 
+  # register_caller is called.  For instance:
+  #
+  #   module Sample
+  #     module_function
+  #     def method
+  #       Lazydoc.register_caller
+  #     end
+  #   end
+  #
+  #   # this is the line that gets registered
+  #   Sample.method
+  #
+  def register_caller(index=1, comment_class=Comment)
+    caller[index] =~ CALLER_REGEXP
+    Lazydoc[$1].register($3.to_i - 1, comment_class)
+  end
+  
   # Resolves all lazydocs which include the specified code comments.
   def resolve_comments(comments)
     registry.each do |doc|
