@@ -631,7 +631,8 @@ subject
   
   def test_resolve_raises_a_range_error_when_line_number_is_out_of_lines
     c.line_number = 2
-    assert_raise(RangeError) { c.resolve ["", ""] }
+    e = assert_raise(RangeError) { c.resolve ["", ""] }
+    assert_equal "line_number outside of lines: 2 (2)", e.message
   end
   
   #

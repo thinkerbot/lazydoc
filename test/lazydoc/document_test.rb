@@ -123,31 +123,55 @@ class DocumentTest < Test::Unit::TestCase
   # register_method test
   #
   
+  def test_register_method_registers_the_next_method_matching_method_name
+    lazydoc = Document.new(__FILE__)
+    m = lazydoc.register_method(:register_method_name)
+    
+    # this is the register_method_name comment
+    def register_method_name(a,b,c)
+    end
+
+    lazydoc.resolve
+
+    assert_equal "register_method_name", m.method_name
+    assert_equal "this is the register_method_name comment", m.to_s
+  end
+  
   # 
   # register___ test
   #
   
-#   def test_register___documentation
-#     tempfile = Tempfile.new('register___test')
-#     tempfile << %Q{
-# lazydoc = Lazydoc[__FILE__]
-# 
-# lazydoc.register___
-# # this is the comment
-# # that is registered
-# def method(a,b,c)
-# end
-# 
-# lazydoc.resolve
-# }
-#     tempfile.close
-#     load(tempfile.path)
-#     
-#     lazydoc = Lazydoc[tempfile.path]
-#     m = lazydoc.comments[0]
-#     assert_equal "method", m.method_name
-#     assert_equal "this is the comment that is registered", m.to_s
-#   end
+  def test_register___documentation
+    lazydoc = Document.new(__FILE__)
+
+    lazydoc.register___
+    # this is the comment
+    # that is registered
+    def method(a,b,c)
+    end
+
+    lazydoc.resolve
+    m = lazydoc.comments[0]
+    assert_equal "method", m.method_name
+    assert_equal "this is the comment that is registered", m.to_s
+  end
+  
+  def test_register___skips_whitespace_before_and_after_comment
+    lazydoc = Document.new(__FILE__)
+
+    lazydoc.register___
+    
+    # this is a comment surrounded
+    # by whitespace
+    
+    def skip_method(a,b,c)
+    end
+
+    lazydoc.resolve
+    m = lazydoc.comments[0]
+    assert_equal "skip_method", m.method_name
+    assert_equal "this is a comment surrounded by whitespace", m.to_s
+  end
 
   #
   # resolve test

@@ -105,7 +105,7 @@ module Lazydoc
       register(Method.method_regexp(method_name), comment_class)
     end
     
-    # Registers the immediately following comment.
+    # Registers the next following comment.
     #
     #   lazydoc = Document.new(__FILE__)
     #
@@ -122,7 +122,12 @@ module Lazydoc
     #
     def register___(comment_class=Method)
       caller[0] =~ CALLER_REGEXP
-      register(3.to_i, comment_class)
+      block = lambda do |lines|
+        n = $3.to_i
+        n += 1 while lines[n] =~ /^\s*(#.*)?$/
+        n
+      end
+      register(block, comment_class)
     end
       
     # Scans str for constant attributes and adds them to to self.  Code
