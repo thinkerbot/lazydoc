@@ -124,8 +124,10 @@ module Lazydoc
         if parse_subject
           scanner.skip(/\s+/)
           unless scanner.peek(1) == '#'
-            comment.subject = scanner.scan(/.+?$/) 
-            comment.subject.strip! unless comment.subject == nil
+            if subject = scanner.scan(/.+?$/) 
+              subject.strip!
+            end
+            comment.subject = subject
           end
         end
     
@@ -421,8 +423,10 @@ module Lazydoc
       # quietly exit if a line number was not found
       return self unless n.kind_of?(Integer)
       
+      # update negative line numbers
+      n += lines.length if n < 0
       unless n < lines.length
-        raise RangeError, "line_number outside of lines: #{line_number} (#{lines.length})"
+        raise RangeError, "line_number outside of lines: #{n} (#{lines.length})"
       end
     
       self.line_number = n

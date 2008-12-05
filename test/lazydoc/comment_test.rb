@@ -260,6 +260,25 @@ subject line # with a trailing comment
     end
   end
   
+  class CommentSubclass < Comment
+    def subject=(value)
+      super(value.upcase)
+    end
+  end
+  
+  def test_parse_returns_instance_of_subclasses
+    comment_test(%Q{
+# comment
+subject line
+ignored
+})  do |str|
+      c = CommentSubclass.parse(str)
+      assert_equal CommentSubclass, c.class
+      assert_equal [['comment']], c.content
+      assert_equal "SUBJECT LINE", c.subject
+    end
+  end
+  
   def test_parse_can_handle_an_empty_or_whitespace_string_without_error
     assert_nothing_raised { Comment.parse("") }
     assert_nothing_raised { Comment.parse("\n   \t \r\n \f ") }
@@ -559,6 +578,20 @@ subject
     c.resolve(lines)
     assert_equal "subject", c.subject
     assert_equal [["comment parsed", "up from line number"]], c.content
+  end
+  
+  def test_resolve_adds_lines_length_to_negative_line_numbers
+    lines = [
+      "not a comment",
+      "# comment parsed",
+      "# up from line number",
+      "subject"]
+
+   c.line_number = -1
+   c.resolve(lines)
+   assert_equal 3, c.line_number
+   assert_equal "subject", c.subject
+   assert_equal [["comment parsed", "up from line number"]], c.content
   end
   
   def test_resolve_late_evaluates_regexp_line_numbers_to_the_first_matching_line

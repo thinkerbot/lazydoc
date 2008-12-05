@@ -118,6 +118,36 @@ class DocumentTest < Test::Unit::TestCase
 
     assert_equal([c1, c2, c3], doc.comments)
   end
+  
+  #
+  # register_method test
+  #
+  
+  # 
+  # register___ test
+  #
+  
+#   def test_register___documentation
+#     tempfile = Tempfile.new('register___test')
+#     tempfile << %Q{
+# lazydoc = Lazydoc[__FILE__]
+# 
+# lazydoc.register___
+# # this is the comment
+# # that is registered
+# def method(a,b,c)
+# end
+# 
+# lazydoc.resolve
+# }
+#     tempfile.close
+#     load(tempfile.path)
+#     
+#     lazydoc = Lazydoc[tempfile.path]
+#     m = lazydoc.comments[0]
+#     assert_equal "method", m.method_name
+#     assert_equal "this is the comment that is registered", m.to_s
+#   end
 
   #
   # resolve test

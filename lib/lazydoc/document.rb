@@ -100,12 +100,31 @@ module Lazydoc
       comment
     end
     
-    # Registers a regexp matching methods by the specified
-    # name.
-    def register_method(method, comment_class=Comment)
-      register(/^\s*def\s+#{method}(\W|$)/, comment_class)
+    # Registers a regexp matching the first method by the specified name.
+    def register_method(method_name, comment_class=Method)
+      register(Method.method_regexp(method_name), comment_class)
     end
-  
+    
+    # Registers the immediately following comment.
+    #
+    #   lazydoc = Document.new(__FILE__)
+    #
+    #   lazydoc.register___
+    #   # this is the comment
+    #   # that is registered
+    #   def method(a,b,c)
+    #   end
+    #
+    #   lazydoc.resolve
+    #   m = lazydoc.comments[0]
+    #   m.method_name  # => "method"
+    #   m.to_s         # => "this is the comment that is registered"
+    #
+    def register___(comment_class=Method)
+      caller[0] =~ CALLER_REGEXP
+      register(3.to_i, comment_class)
+    end
+      
     # Scans str for constant attributes and adds them to to self.  Code
     # comments are also resolved against str.  If no str is specified,
     # the contents of source_file are used instead.
