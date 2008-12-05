@@ -428,7 +428,7 @@ module Lazydoc
       unless n < lines.length
         raise RangeError, "line_number outside of lines: #{n} (#{lines.length})"
       end
-    
+      
       self.line_number = n
       self.subject = lines[n]
       self.content.clear

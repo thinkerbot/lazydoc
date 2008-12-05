@@ -1,4 +1,5 @@
 require 'lazydoc/comment'
+require 'lazydoc/method'
 
 module Lazydoc
   
@@ -120,8 +121,8 @@ module Lazydoc
     #   m.method_name  # => "method"
     #   m.to_s         # => "this is the comment that is registered"
     #
-    def register___(comment_class=Method)
-      caller[0] =~ CALLER_REGEXP
+    def register___(comment_class=Method, caller_index=0)
+      caller[caller_index] =~ CALLER_REGEXP
       block = lambda do |lines|
         n = $3.to_i
         n += 1 while lines[n] =~ /^\s*(#.*)?$/

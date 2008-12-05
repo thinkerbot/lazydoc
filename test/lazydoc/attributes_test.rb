@@ -1,7 +1,23 @@
 require  File.join(File.dirname(__FILE__), '../tap_test_helper')
 require 'lazydoc/attributes'
 
+# ConstName::key value
+class ConstName
+  extend Lazydoc::Attributes
+  
+  lazy_attr :key
+end
+
 class AttributesTest < Test::Unit::TestCase
+
+  #
+  # documentation test
+  #
+  
+  def test_attributes_documentation
+    assert_equal __FILE__, ConstName.source_file
+    assert_equal 'value', ConstName::key.subject
+  end
 
   # AttributesTest::LazyClass::lazy subject
   # comment

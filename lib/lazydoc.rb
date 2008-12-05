@@ -64,8 +64,8 @@ module Lazydoc
   #   # this is the line that gets registered
   #   Sample.method
   #
-  def register_caller(index=1, comment_class=Comment)
-    caller[index] =~ CALLER_REGEXP
+  def register_caller(comment_class=Comment, caller_index=1)
+    caller[caller_index] =~ CALLER_REGEXP
     Lazydoc[$1].register($3.to_i - 1, comment_class)
   end
   
