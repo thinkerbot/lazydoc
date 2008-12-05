@@ -192,6 +192,8 @@ module Lazydoc
     end
   end
   
+  # Parses the usage for a file, ie the first comment in the file 
+  # following an optional bang line.
   def usage(path, cols=80)
     scanner = StringScanner.new(File.read(path))
     scanner.scan(/^#!.*?$/)

@@ -79,11 +79,9 @@ A variety of helper methods exist to register methods, in particular:
   class Helpers
     extend Lazydoc::Attributes
     
-    register___
-    # method_one is now registered by the 
-    # register___ helper.  What's more it's
-    # a Method comment, so you have access
-    # to arguments and such.
+    register_method___
+    # method_one was registered by the
+    # helper
     def method_one(a, b='str', &c)
     end
     
@@ -104,7 +102,7 @@ A variety of helper methods exist to register methods, in particular:
   m1 = doc.comments[0]
   m1.method_name        # => "method_one"
   m1.arguments          # => ["a", "b='str'", "&c"]
-  m1.to_s[0, 70]        # => "method_one is now registered by the register___ helper.  What's more i"
+  m1.to_s               # => "method_one was registered by the helper"
   
   comment = doc.comments[1]
   comment.subject       # => "Helpers.new.method_two"

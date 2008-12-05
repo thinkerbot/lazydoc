@@ -72,11 +72,9 @@ key
 class Helpers
   extend Lazydoc::Attributes
 
-  register___
-  # method_one is now registered by the 
-  # register___ helper.  What's more it's
-  # a Method comment, so you have access
-  # to arguments and such.
+  register_method___
+  # method_one was registered by the 
+  # helper
   def method_one(a, b='str', &c)
   end
 
@@ -100,7 +98,7 @@ Helpers.new.method_two
     m1 = doc.comments[0]
     assert_equal "method_one", m1.method_name
     assert_equal ["a", "b='str'", "&c"], m1.arguments
-    assert_equal "method_one is now registered by the register___ helper.  What's more i", m1.to_s[0, 70]
+    assert_equal "method_one was registered by the helper", m1.to_s
     
     comment = doc.comments[1]
     assert_equal "Helpers.new.method_two", comment.subject

@@ -106,7 +106,7 @@ module Lazydoc
       register(Method.method_regexp(method_name), comment_class)
     end
     
-    # Registers the next following comment.
+    # Registers the next comment.
     #
     #   lazydoc = Document.new(__FILE__)
     #
@@ -118,10 +118,10 @@ module Lazydoc
     #
     #   lazydoc.resolve
     #   m = lazydoc.comments[0]
-    #   m.method_name  # => "method"
+    #   m.subject      # => "def method(a,b,c)"
     #   m.to_s         # => "this is the comment that is registered"
     #
-    def register___(comment_class=Method, caller_index=0)
+    def register___(comment_class=Comment, caller_index=0)
       caller[caller_index] =~ CALLER_REGEXP
       block = lambda do |lines|
         n = $3.to_i

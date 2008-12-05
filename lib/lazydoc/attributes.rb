@@ -2,9 +2,7 @@ require 'lazydoc'
 
 module Lazydoc
   # Attributes adds methods to declare class-level accessors for Lazydoc 
-  # attributes.  The source_file for the class is by default set to the
-  # file where Attributes extends a class (if you decide to include
-  # Attributes, source_file has to be specified manually):
+  # attributes.
   #
   #   # ConstName::key value
   #   class ConstName
@@ -19,10 +17,11 @@ module Lazydoc
   module Attributes
 
     # The source_file for self.  By default set to the file where
-    # Attributes is included in or extends a class.
+    # Attributes extends a class (if you include Attributes, you
+    # must set source_file manually).
     attr_accessor :source_file
     
-    def self.extended(base)
+    def self.extended(base) # :nodoc:
       caller[1] =~ CALLER_REGEXP
       base.source_file ||= $1
     end
@@ -46,8 +45,8 @@ def #{key}=(comment)
 end}
     end
     
-    # Alias for Document#register___
-    def register___(comment_class=Method)
+    # Registers the next method.
+    def register_method___(comment_class=Method)
       lazydoc(false).register___(comment_class, 1)
     end
   end

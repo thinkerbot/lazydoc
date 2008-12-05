@@ -145,14 +145,14 @@ class DocumentTest < Test::Unit::TestCase
     lazydoc = Document.new(__FILE__)
 
     lazydoc.register___
-    # this is the comment
-    # that is registered
-    def method(a,b,c)
-    end
+# this is the comment
+# that is registered
+def method(a,b,c)
+end
 
     lazydoc.resolve
     m = lazydoc.comments[0]
-    assert_equal "method", m.method_name
+    assert_equal "def method(a,b,c)", m.subject
     assert_equal "this is the comment that is registered", m.to_s
   end
   
@@ -161,15 +161,15 @@ class DocumentTest < Test::Unit::TestCase
 
     lazydoc.register___
     
-    # this is a comment surrounded
-    # by whitespace
-    
-    def skip_method(a,b,c)
-    end
+# this is a comment surrounded
+# by whitespace
+
+def skip_method(a,b,c)
+end
 
     lazydoc.resolve
     m = lazydoc.comments[0]
-    assert_equal "skip_method", m.method_name
+    assert_equal "def skip_method(a,b,c)", m.subject
     assert_equal "this is a comment surrounded by whitespace", m.to_s
   end
 

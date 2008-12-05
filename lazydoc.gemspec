@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "lazydoc"
-  s.version = "0.1.0"
+  s.version = "0.2.0"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org/lazydoc"
@@ -24,5 +24,6 @@ Gem::Specification.new do |s|
     lib/lazydoc/attributes.rb
     lib/lazydoc/comment.rb
     lib/lazydoc/document.rb
+    lib/lazydoc/method.rb
   }
 end
