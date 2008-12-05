@@ -174,7 +174,40 @@ module Lazydoc
         end
         true
       end
-    
+      
+      # Scans a stripped trailing comment off of str, tolerant to a leader
+      # that uses '#' within a string.  Returns nil for strings without a 
+      # trailing comment.
+      #
+      #   Comment.scan_trailer "str with # trailer"           # => "trailer"
+      #   Comment.scan_trailer "'# in str' # trailer"         # => "trailer"
+      #   Comment.scan_trailer "str with without trailer"     # => nil
+      # 
+      # Note the %-syntax for strings is not fully supported, ie %Q, %q,
+      # etc. may not parse correctly.  Accepts Strings or a StringScanner.
+      def scan_trailer(str)
+        scanner = case str
+        when StringScanner then str
+        when String then StringScanner.new(str)
+        else raise TypeError, "can't convert #{str.class} into StringScanner or String"
+        end
+
+        args = []
+        brakets = braces = parens = 0
+        start = scanner.pos
+        while scanner.skip(/.*?['"#]/)
+          pos = scanner.pos - 1
+          
+          case str[pos]
+          when ?# then return scanner.rest.strip     # return the trailer
+          when ?' then skip_quote(scanner, /'/)      # parse over quoted strings
+          when ?" then skip_quote(scanner, /"/)      # parse over double-quoted string
+          end
+        end
+        
+        return nil
+      end
+      
       # Splits a line of text along whitespace breaks into fragments of cols
       # width.  Tabs in the line will be expanded into tabsize spaces; 
       # fragments are rstripped of whitespace.
@@ -209,6 +242,13 @@ module Lazydoc
           yield [fragment.rstrip]
           yield []
         end
+      end
+      
+      # helper method to skip to the next non-escaped instance
+      # matching the quote regexp (/'/ or /"/).
+      def skip_quote(scanner, regexp) # :nodoc:
+        scanner.skip_until(regexp)
+        scanner.skip_until(regexp) while scanner.string[scanner.pos-2] == ?\\
       end
     end
 
@@ -459,6 +499,11 @@ module Lazydoc
       !content.find {|line| !line.empty?}
     end
   
+    # Returns a comment trailing the subject.
+    def trailer
+      subject ? Comment.scan_trailer(subject) : nil
+    end
+    
     # Returns content as a string where line fragments are joined by
     # fragment_sep and lines are joined by line_sep. 
     def to_s(fragment_sep=" ", line_sep="\n", strip=true)

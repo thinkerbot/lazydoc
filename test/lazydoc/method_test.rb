@@ -40,26 +40,6 @@ class MethodTest < Test::Unit::TestCase
   end
   
   #
-  # TRAILER test
-  #
-  
-  def test_TRAILER
-    r = Method::TRAILER
-    
-    assert "" =~ r
-    assert_equal "", $1
-    
-    assert "simply a string" =~ r
-    assert_equal "simply a string", $1
-    
-    assert "# trailer comment" =~ r
-    assert_equal "trailer comment", $1
-    
-    assert "   # trailer comment   " =~ r
-    assert_equal "trailer comment", $1
-  end
-  
-  #
   # method_regexp test
   #
   
@@ -76,11 +56,6 @@ class MethodTest < Test::Unit::TestCase
   
   def test_parse_args_documentation
     assert_equal ["a", "b='default'", "&block"], Method.parse_args("(a, b='default', &block)")
-  
-    scanner = StringScanner.new("a, b # trailing comment")
-    assert_equal ["a", "b"], Method.parse_args(scanner)
-    scanner.rest =~ Method::TRAILER
-    assert_equal "trailing comment", $1.to_s
   end
   
   def test_parse_args
@@ -128,7 +103,6 @@ class MethodTest < Test::Unit::TestCase
     m = Method.new
     assert_equal nil, m.method_name
     assert_equal [], m.arguments
-    assert_equal nil, m.trailer
   end
   
   #

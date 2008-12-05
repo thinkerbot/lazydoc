@@ -318,6 +318,30 @@ ignored
   end
   
   #
+  # scan_trailer test
+  #
+  
+  def test_scan_trailer_documentation
+    assert_equal "trailer", Comment.scan_trailer("str with # trailer")
+    assert_equal "trailer", Comment.scan_trailer("'# in str' # trailer")
+    assert_equal nil, Comment.scan_trailer("str with without trailer")
+  end
+  
+  def test_scan_trailer_returns_nil_for_strings_without_a_trailer
+    assert_equal nil, Comment.scan_trailer("")
+    assert_equal nil, Comment.scan_trailer("simply a string")
+  end
+  
+  def test_scan_trailer_returns_stripped_trailer
+    assert_equal "trailer comment", Comment.scan_trailer("str with # trailer comment")
+    assert_equal "trailer comment", Comment.scan_trailer("str with #   trailer comment   ")
+  end
+  
+  def test_scan_trailer_overlooks_comments_in_strings
+    assert_equal "trailer comment", Comment.scan_trailer(%q{ '#str' "#{str}" # trailer comment})
+  end
+  
+  #
   # wrap test
   #
   
@@ -674,6 +698,15 @@ subject
     c.content.push "frag"
     
     assert !c.empty?
+  end
+  
+  #
+  # trailer test
+  #
+  
+  def test_trailer_returns_a_trailing_comment_on_the_subject_line
+    c.subject = "comment # with trailer "
+    assert_equal "with trailer", c.trailer
   end
   
   #

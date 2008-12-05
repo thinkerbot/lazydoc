@@ -38,14 +38,6 @@ module Lazydoc
       #   Method.parse_args("(a, b='default', &block)")  
       #   # => ["a", "b='default'", "&block"]
       #
-      # To extract the comment string, pass parse_args a string scanner
-      # initialized to the argument string, then match the remainder:
-      #
-      #   scanner = StringScanner.new("a, b # trailing comment")
-      #   Method.parse_args(scanner)              # => ["a", "b"]
-      #   scanner.rest =~ Method::TRAILER
-      #   $1.to_s                                 # => "trailing comment"
-      #   
       # Note the %-syntax for strings and arrays is not fully supported,
       # ie %w, %Q, %q, etc. may not parse correctly.  The same is true
       # for multiline argument strings.
@@ -99,15 +91,6 @@ module Lazydoc
 
         args
       end
-      
-      private
-      
-      # helper method to skip to the next non-escaped instance
-      # matching the quote regexp (/'/ or /"/).
-      def skip_quote(scanner, regexp) # :nodoc:
-        scanner.skip_until(regexp)
-        scanner.skip_until(regexp) while scanner.string[scanner.pos-2] == ?\\
-      end
     end
     
     # Matches a standard method definition.  After the match:
@@ -117,26 +100,16 @@ module Lazydoc
     #
     METHOD_DEF = /^\s*def (\w+)(.*)$/
     
-    # Matches a trailing comment after parse_args.  After the match:
-    #
-    #   $1:: the stripped trailing comment
-    #
-    TRAILER = /^\s*#?\s*(.*?)\s*$/
-    
     # The resolved method name
     attr_reader :method_name
     
     # An array of the resolved arguments for the method
     attr_reader :arguments
     
-    # A comment that follows the method definition
-    attr_reader :trailer
-    
     def initialize(*args)
       super
       @method_name = nil
       @arguments = []
-      @trailer = nil
     end
     
     # Overridden to parse and set the method_name, arguments, and 
@@ -147,11 +120,8 @@ module Lazydoc
       end
       
       @method_name = $1
-      scanner = StringScanner.new($2)
-      @arguments = Method.parse_args(scanner)
-      scanner.rest =~ TRAILER
-      @trailer = $1
-      
+      @arguments = Method.parse_args($2)
+  
       super
     end
   end
