@@ -32,11 +32,56 @@ class MethodTest < Test::Unit::TestCase
     assert "def m a, b='str', c=2  # comment" =~ r
     assert_equal "m", $1
     assert_equal " a, b='str', c=2  # comment", $2
+    
+    # non-matching cases
+    assert "a,b,c" !~ r
+    assert "# comment" !~ r
+    assert "def &$%" !~ r
+  end
+  
+  #
+  # TRAILER test
+  #
+  
+  def test_TRAILER
+    r = Method::TRAILER
+    
+    assert "" =~ r
+    assert_equal "", $1
+    
+    assert "simply a string" =~ r
+    assert_equal "simply a string", $1
+    
+    assert "# trailer comment" =~ r
+    assert_equal "trailer comment", $1
+    
+    assert "   # trailer comment   " =~ r
+    assert_equal "trailer comment", $1
+  end
+  
+  #
+  # method_regexp test
+  #
+  
+  def test_method_regexp_documentation
+    m = Method.method_regexp("method")
+    assert m =~ "def method"
+    assert m =~ "def method(with, args, &block)"
+    assert m !~ "def some_other_method" 
   end
   
   #
   # parse_args test
   #
+  
+  def test_parse_args_documentation
+    assert_equal ["a", "b='default'", "&block"], Method.parse_args("(a, b='default', &block)")
+  
+    scanner = StringScanner.new("a, b # trailing comment")
+    assert_equal ["a", "b"], Method.parse_args(scanner)
+    scanner.rest =~ Method::TRAILER
+    assert_equal "trailing comment", $1.to_s
+  end
   
   def test_parse_args
     assert_equal [""], Method.parse_args("")
@@ -71,7 +116,7 @@ class MethodTest < Test::Unit::TestCase
     m.resolve(lines)
     assert_equal "method_name", m.method_name
     assert_equal ["a", "b", "&c"], m.arguments
-    assert_equal "trailing comment", m.modifier
+    assert_equal "trailing comment", m.trailer
   end
   
 end

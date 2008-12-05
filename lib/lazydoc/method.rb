@@ -1,10 +1,37 @@
 module Lazydoc
   class Method < Comment
     class << self
-      def regexp(method_name)
-        /def \w+(\((.*?)\))?/
+      
+      # Generates a regexp matching a standard definition of the
+      # specified method.
+      #
+      #   m = Method.method_regexp("method")
+      #   m =~ "def method"                       # => true
+      #   m =~ "def method(with, args, &block)"   # => true
+      #   m !~ "def some_other_method"            # => true
+      #
+      def method_regexp(method_name)
+        /^\s*def\s+#{method_name}(\W|$)/
       end
       
+      # Parses an argument string (anything following the method name in a
+      # standard method definition, including parenthesis/comments/default
+      # values etc) into an array of strings.
+      #
+      #   Method.parse_args("(a, b='default', &block)")  
+      #   # => ["a", "b='default'", "&block"]
+      #
+      # To extract the comment string, pass parse_args a string scanner
+      # initialized to the argument string, then match the remainder:
+      #
+      #   scanner = StringScanner.new("a, b # trailing comment")
+      #   Method.parse_args(scanner)              # => ["a", "b"]
+      #   scanner.rest =~ Method::TRAILER
+      #   $1.to_s                                 # => "trailing comment"
+      #   
+      # Note the %-syntax for strings and arrays is not fully supported,
+      # ie %w, %Q, %q, etc. may not parse correctly.  The same is true
+      # for multiline argument strings.
       def parse_args(str)
         scanner = case str
         when StringScanner then str
@@ -73,6 +100,12 @@ module Lazydoc
     #
     METHOD_DEF = /^\s*def (\w+)(.*)$/
     
+    # Matches a trailing comment after parse_args.  After the match:
+    #
+    #   $1:: the stripped trailing comment
+    #
+    TRAILER = /^\s*#?\s*(.*?)\s*$/
+    
     # The resolved method name
     attr_reader :method_name
     
@@ -80,28 +113,29 @@ module Lazydoc
     attr_reader :arguments
     
     # A comment that follows the method definition
-    attr_reader :modifier
+    attr_reader :trailer
     
     def initialize(*args)
       super
       @method_name = nil
-      @modifier = nil
       @arguments = []
+      @trailer = nil
     end
     
+    # Adds to resolve to pick out method_name, arguments,
+    # and a trailer comment from the subject line.
     def resolve(lines)
       super
       unless @subject =~ METHOD_DEF
         raise "not a method definition: #{@subject}"
       end
       
-      scanner = StringScanner.new($2)
-      
       @method_name = $1
+      scanner = StringScanner.new($2)
       @arguments = Method.parse_args(scanner)
-      
-      scanner.rest =~ /^\s*#?\s*(.*?)\s*$/
-      @modifier = $1
+      scanner.rest =~ TRAILER
+      @trailer = $1
+
       self
     end
   end
