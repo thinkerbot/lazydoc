@@ -63,7 +63,7 @@ Lazydoc::Comment.
   # constant attribute, or an end
   # key
   # ..............................
-  #}
+  # }
 
 In addition, individual lines of code may be registered and resolved by Lazydoc:
 

@@ -5,7 +5,7 @@ Gem::Specification.new do |s|
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org/lazydoc"
   s.platform = Gem::Platform::RUBY
-  s.summary = "lazydoc"
+  s.summary = "Lazily pull documentation out of source files."
   s.require_path = "lib"
   s.rubyforge_project = "tap"
   s.has_rdoc = true
