@@ -14,7 +14,7 @@ module Lazydoc
   #   
   # Normally the subject is the first non-comment line following the content,
   # although in some cases the subject will be manually set to something else
-  # (as in a Lazydoc constant attribute). The content is an array of comment
+  # (as in a constant attribute). The content is an array of comment
   # fragments organized by line:
   #
   #   c = Comment.parse(sample_comment)
@@ -175,16 +175,19 @@ module Lazydoc
         true
       end
       
-      # Scans a stripped trailing comment off of str, tolerant to a leader
-      # that uses '#' within a string.  Returns nil for strings without a 
-      # trailing comment.
+      # Scans a stripped trailing comment off the input.  Returns nil for 
+      # strings without a trailing comment.
       #
       #   Comment.scan_trailer "str with # trailer"           # => "trailer"
       #   Comment.scan_trailer "'# in str' # trailer"         # => "trailer"
       #   Comment.scan_trailer "str with without trailer"     # => nil
       # 
-      # Note the %-syntax for strings is not fully supported, ie %Q, %q,
-      # etc. may not parse correctly.  Accepts Strings or a StringScanner.
+      # Note the %Q and %q syntax for defining strings is not supported
+      # within the leader and may not parse correctly:
+      #
+      #   Comment.scan_trailer "%Q{# in str} # trailer"       # => "in str} # trailer"
+      #
+      # Accepts Strings or a StringScanner.
       def scan_trailer(str)
         scanner = case str
         when StringScanner then str
@@ -255,9 +258,7 @@ module Lazydoc
     # An array of comment fragments organized into lines
     attr_reader :content
 
-    # The subject of the comment (normally set to the next 
-    # non-comment line after the content ends; ie the line 
-    # that would receive the comment in RDoc documentation)
+    # The subject of the comment
     attr_accessor :subject
   
     # Returns the line number for the subject line, if known.
@@ -266,7 +267,7 @@ module Lazydoc
     # the subject line during resolve
     attr_accessor :line_number
   
-    # A back-reference to the Document that registered self.
+    # A back-reference to the Document that registered self
     attr_accessor :document
     
     def initialize(line_number=nil, document=nil)
@@ -286,9 +287,9 @@ module Lazydoc
       self.subject = value
     end
 
-    # Pushes the fragment onto the last line array of content.  If the
-    # fragment is an array itself then it will be pushed onto content 
-    # as a new line.
+    # Pushes the fragment onto the last line of content.  If the
+    # fragment is an array itself then it will be pushed onto
+    # content as a new line.
     #
     #   c = Comment.new
     #   c.push "some line"
@@ -349,9 +350,9 @@ module Lazydoc
       Comment.scan(line) {|f| push(f) }
     end
   
-    # Unshifts the fragment to the first line array of content.  If the
-    # fragment is an array itself then it will be unshifted onto content
-    # as a new line.
+    # Unshifts the fragment to the first line of content.  If the
+    # fragment is an array itself then it will be unshifted onto
+    # content as a new line.
     #
     #   c = Comment.new
     #   c.unshift "some line"
@@ -430,14 +431,14 @@ module Lazydoc
     #   c.content     # => [["this is the content of the comment", "for method_one"]]
     #
     # Lines may be an array or a string; string inputs are split into an
-    # array along newline boundaries.  If nil is provided for lines, 
-    # the document for self will be resolved, if set, and in effect the 
-    # document will re-resolve self with the appropriate lines.
+    # array along newline boundaries.  If nil is provided, the document 
+    # for self will be resolved (as a result the document will re-resolve
+    # self with non-nil lines).
     #
-    # ==== dynamic line numbers
+    # ==== Dynamic Line Numbers
     #
     # The line_number used by resolve may be determined dynamically from
-    # lines by setting line_number to a Regexp and Proc. In the case
+    # the input by setting line_number to a Regexp and Proc. In the case
     # of a Regexp, the first line matching the regexp is used:
     #
     #   c = Comment.new(/def method/)
@@ -455,8 +456,8 @@ module Lazydoc
     #   c.subject     # => "  def method_two"
     #   c.content     # => [["this is the content of the comment", "for method_two"]]
     #
-    # As shown in the examples, in both cases the dynamically determined
-    # line_number overwrites the Regexp or Proc.
+    # As shown in the examples, the dynamically determined line_number
+    # overwrites the Regexp or Proc.
     def resolve(lines=nil)
       lines = case lines
       when String 
@@ -501,7 +502,7 @@ module Lazydoc
     end
   
     # Removes leading and trailing lines from content that are
-    # empty ([]) or whitespace (['']).  Returns self.
+    # empty or whitespace.  Returns self.
     def trim
       content.shift while !content.empty? && (content[0].empty? || content[0].join.strip.empty?)
       content.pop   while !content.empty? && (content[-1].empty? || content[-1].join.strip.empty?)
@@ -513,7 +514,7 @@ module Lazydoc
       !content.find {|line| !line.empty?}
     end
   
-    # Returns a comment trailing the subject.
+    # Returns the comment trailing the subject.
     def trailer
       subject ? Comment.scan_trailer(subject) : nil
     end

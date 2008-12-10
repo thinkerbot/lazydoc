@@ -5,23 +5,9 @@ require 'tempfile'
 # Sample::key <value>
 # This is the comment content.  A content
 # string can span multiple lines...
-#
-#   code.is_allowed
-#   much.as_in RDoc
-#
-# and stops at the next non-comment
-# line, the next constant attribute,
-# or an end key
 class Sample
   extend Lazydoc::Attributes
-  self.source_file = __FILE__
-  
   lazy_attr :key
-
-  # comment content for a code comment
-  # may similarly span multiple lines
-  def method_one
-  end
 end
 
 class ReadmeTest < Test::Unit::TestCase
@@ -32,61 +18,37 @@ class ReadmeTest < Test::Unit::TestCase
 
   def test_description_documentation 
     comment = Sample::key
-    assert_equal "<value>", comment.subject
-
-    expected = [
-    ["This is the comment content.  A content", "string can span multiple lines..."],
-    [""],
-    ["  code.is_allowed"],
-    ["  much.as_in RDoc"],
-    [""],
-    ["and stops at the next non-comment", "line, the next constant attribute,", "or an end key"]]
-    assert_equal expected, comment.content
+    assert_equal "<value>", comment.value
+    assert_equal "This is the comment content.  A content string can span multiple lines...", comment.to_s
 
     expected = %q{
 ..............................
 This is the comment content.
 A content string can span
 multiple lines...
-
-  code.is_allowed
-  much.as_in RDoc
-
-and stops at the next
-non-comment line, the next
-constant attribute, or an end
-key
 ..............................
 }
     assert_equal expected, "\n#{'.' * 30}\n" + comment.wrap(30) + "\n#{'.' * 30}\n"
 
-    doc = Sample.lazydoc.reset
-    comment = doc.register(/method_one/)
-
-    doc.resolve
-    assert_equal "  def method_one", comment.subject
-    assert_equal [["comment content for a code comment", "may similarly span multiple lines"]], comment.content
-    
     tempfile = Tempfile.new('readme_test')
     tempfile << %Q{
 class Helpers
   extend Lazydoc::Attributes
 
   register_method___
-  # method_one was registered by the 
-  # helper
+  # method_one is registered by the helper
   def method_one(a, b='str', &c)
   end
 
-  # method_two illustrates registration
-  # of the line that *calls* method_two
+  # register_caller will register the line
+  # that *calls* method_two
   def method_two
     Lazydoc.register_caller
   end
 end
 
-# *THIS* is the line that gets registered
-# by method_two
+# *THIS* is the line that gets
+# registered by method_two
 Helpers.new.method_two
 }
     tempfile.close
@@ -95,10 +57,10 @@ Helpers.new.method_two
     doc = Helpers.lazydoc
     doc.resolve
     
-    m1 = doc.comments[0]
-    assert_equal "method_one", m1.method_name
-    assert_equal ["a", "b='str'", "&c"], m1.arguments
-    assert_equal "method_one was registered by the helper", m1.to_s
+    comment = doc.comments[0]
+    assert_equal "method_one", comment.method_name
+    assert_equal ["a", "b='str'", "&c"], comment.arguments
+    assert_equal "method_one is registered by the helper", comment.to_s
     
     comment = doc.comments[1]
     assert_equal "Helpers.new.method_two", comment.subject

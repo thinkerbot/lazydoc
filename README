@@ -6,47 +6,23 @@ Tap[http://tap.rubyforge.org] framework.
 
 == Description
 
-Lazydoc can find two types of documentation: constant attributes and 
-code comments.  To illustrate, consider the following:
+Lazydoc allows you to define lazy attributes that act as markers for
+documentation in a source file.  When you call the lazy attribute,
+Lazydoc pulls out the documentation:
 
   # Sample::key <value>
   # This is the comment content.  A content
   # string can span multiple lines...
-  #
-  #   code.is_allowed
-  #   much.as_in RDoc
-  #
-  # and stops at the next non-comment
-  # line, the next constant attribute,
-  # or an end key
   class Sample
     extend Lazydoc::Attributes
-    self.source_file = __FILE__
-
     lazy_attr :key
-
-    # comment content for a code comment
-    # may similarly span multiple lines
-    def method_one
-    end
   end
-
-When a lazy attribute is called, Lazydoc scans <tt>source_file</tt> for
-the corresponding constant attribute and makes it available as a
-Lazydoc::Comment.
-
+  
   comment = Sample::key
-  comment.value       
-  # => "<value>"
+  comment.value   # => "<value>"
+  comment.to_s    # => "This is the comment content.  A content string can span multiple lines..."
 
-  comment.content       
-  # => [
-  # ["This is the comment content.  A content", "string can span multiple lines..."],
-  # [""],
-  # ["  code.is_allowed"],
-  # ["  much.as_in RDoc"],
-  # [""],
-  # ["and stops at the next non-comment", "line, the next constant attribute,", "or an end key"]]
+Comments support wrapping, allowing for easy presentation:
 
   "\n#{'.' * 30}\n" + comment.wrap(30) + "\n#{'.' * 30}\n"
   # => %q{
@@ -54,59 +30,42 @@ Lazydoc::Comment.
   # This is the comment content.
   # A content string can span
   # multiple lines...
-  # 
-  #   code.is_allowed
-  #   much.as_in RDoc
-  # 
-  # and stops at the next
-  # non-comment line, the next
-  # constant attribute, or an end
-  # key
   # ..............................
   # }
 
-In addition, individual lines of code may be registered and resolved by Lazydoc:
-
-  doc = Sample.lazydoc.reset
-  comment = doc.register(/method_one/)
-  
-  doc.resolve
-  comment.subject       # => "  def method_one"
-  comment.content       # => [["comment content for a code comment", "may similarly span multiple lines"]]
-  
-A variety of helper methods exist to register methods, in particular:
+In addition, Lazydoc provides helpers to register individual lines
+of code, particularly method definitions:
 
   class Helpers
     extend Lazydoc::Attributes
     
     register_method___
-    # method_one was registered by the
-    # helper
+    # method_one is registered by the helper
     def method_one(a, b='str', &c)
     end
     
-    # method_two illustrates registration
-    # of the line that *calls* method_two
+    # register_caller will register the line
+    # that *calls* method_two
     def method_two
       Lazydoc.register_caller
     end
   end
   
-  # *THIS* is the line that gets registered
-  # by method_two
+  # *THIS* is the line that gets
+  # registered by method_two
   Helpers.new.method_two
   
   doc = Helpers.lazydoc
   doc.resolve
   
-  m1 = doc.comments[0]
-  m1.method_name        # => "method_one"
-  m1.arguments          # => ["a", "b='str'", "&c"]
-  m1.to_s               # => "method_one was registered by the helper"
+  comment = doc.comments[0]
+  comment.method_name        # => "method_one"
+  comment.arguments          # => ["a", "b='str'", "&c"]
+  comment.to_s               # => "method_one is registered by the helper"
   
   comment = doc.comments[1]
-  comment.subject       # => "Helpers.new.method_two"
-  comment.to_s          # => "*THIS* is the line that gets registered by method_two"
+  comment.subject            # => "Helpers.new.method_two"
+  comment.to_s               # => "*THIS* is the line that gets registered by method_two"
 
 Check out these links for development, and bug tracking.
 
@@ -116,6 +75,10 @@ Check out these links for development, and bug tracking.
 * {Google Group}[http://groups.google.com/group/ruby-on-tap]
 
 == Usage
+
+Lazydoc can find two types of documentation, constant attributes and code
+comments, which correspond to lazy attributes and the lines of code 
+registered by helpers, respectively.
 
 === Constant Attributes
 
@@ -194,10 +157,9 @@ from hiding the example):
   #
   # * This line is also visible in RDoc.
 
-As a side note, <tt>Const::Name::key</tt> is not a reference to the 'key' 
-constant (as that would be invalid).  In *very* idiomatic ruby
-<tt>Const::Name::key</tt> is equivalent to the method call 
-<tt>Const::Name.key</tt>.
+As a side note, 'Const::Name::key' is not a reference to the 'key' 
+constant (that would be invalid).  In *very* idiomatic ruby
+'Const::Name::key' is equivalent to the method call 'Const::Name.key'.
 
 === Code Comments
 
@@ -233,7 +195,7 @@ Comments may be registered to specific line numbers, or with a Proc or
 Regexp that will determine the line number during resolution.  In the case
 of a Regexp, the first matching line is used; Procs receive an array of
 lines and should return the line number that should be used.  See 
-Lazydoc::Comment#resolve for more details.
+{Comment#resolve}[link://classes/Lazydoc/Comment.html] for more details.
 
 == Installation
 

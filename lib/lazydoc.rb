@@ -5,9 +5,9 @@ module Lazydoc
   
   # A regexp matching an attribute start or end.  After a match:
   #
-  # $1:: const_name
-  # $3:: key
-  # $4:: end flag
+  #   $1:: const_name
+  #   $3:: key
+  #   $4:: end flag
   #
   ATTRIBUTE_REGEXP = /([A-Z][A-z]*(::[A-Z][A-z]*)*)?::([a-z_]+)(-?)/
 
@@ -17,8 +17,8 @@ module Lazydoc
   # A regexp matching a caller line, to extract the calling file
   # and line number.  After a match:
   #
-  # $1:: file
-  # $3:: line number (as a string, obviously)
+  #   $1:: file
+  #   $3:: line number (as a string, obviously)
   #
   # Note that line numbers in caller start at 1, not 0.
   CALLER_REGEXP = /^(([A-z]:)?[^:]+):(\d+)/
@@ -30,8 +30,8 @@ module Lazydoc
     @registry ||= []
   end
   
-  # Returns the lazydoc in registry for the specified source file.
-  # If no such lazydoc exists, one will be created for it.
+  # Returns the Document in registry for the specified source file.
+  # If no such Document exists, one will be created for it.
   def [](source_file)
     source_file = File.expand_path(source_file.to_s)
     lazydoc = registry.find {|doc| doc.source_file == source_file }
@@ -42,13 +42,13 @@ module Lazydoc
     lazydoc
   end
 
-  # Register the specified line numbers to the lazydoc for source_file.
-  # Returns a comment_class instance corresponding to the line.
+  # Register the line number to the Document for source_file and
+  # returns the corresponding comment.
   def register(source_file, line_number, comment_class=Comment)
     Lazydoc[source_file].register(line_number, comment_class)
   end
   
-  # Registers the method at the specified index in the call stack, to
+  # Registers the method at the specified index in the call stack to
   # the file where the method was called.  Using the default index of
   # 1, register_caller registers the caller of the method where 
   # register_caller is called.  For instance:
@@ -69,22 +69,22 @@ module Lazydoc
   end
   
   # Scans the specified file for attributes keyed by key and stores 
-  # the resulting comments in the source_file lazydoc. Returns the
-  # lazydoc.
+  # the resulting comments in the Document for source_file. Returns 
+  # the Document.
   def scan_doc(source_file, key)
-    lazydoc = nil
+    document = nil
     scan(File.read(source_file), key) do |const_name, attr_key, comment|
-      lazydoc = self[source_file] unless lazydoc
-      lazydoc[const_name][attr_key] = comment
+      document = self[source_file] unless document
+      document[const_name][attr_key] = comment
     end
-    lazydoc
+    document
   end
   
   # Scans the string or StringScanner for attributes matching the key
-  # (keys may be patterns, they are incorporated into a regexp). Yields 
-  # each (const_name, key, value) triplet to the mandatory block and
-  # skips regions delimited by the stop and start keys <tt>:-</tt> 
-  # and <tt>:+</tt>.
+  # (keys may be patterns; they are incorporated into a regexp).
+  # Regions delimited by the stop and start keys <tt>:::-</tt> and 
+  # <tt>:::+</tt> are skipped. Yields each (const_name, key, value) 
+  # triplet to the block.
   #
   #   str = %Q{
   #   # Const::Name::key value
@@ -134,10 +134,9 @@ module Lazydoc
     scanner
   end
 
-  # Parses constant attributes from the string or StringScanner.  Yields 
-  # each (const_name, key, comment) triplet to the mandatory block 
-  # and skips regions delimited by the stop and start keys <tt>:-</tt> 
-  # and <tt>:+</tt>.
+  # Parses constant attributes from the string or StringScanner.  Regions 
+  # delimited by the stop and start keys <tt>:::-</tt> and <tt>:::+</tt> 
+  # are skipped.  Yields each (const_name, key, value) triplet to the block.
   #
   #   str = %Q{
   #   # Const::Name::key subject for key
@@ -184,7 +183,7 @@ module Lazydoc
   end
   
   # Parses the usage for a file, ie the first comment in the file 
-  # following an optional bang line.
+  # following the bang line.
   def usage(path, cols=80)
     scanner = StringScanner.new(File.read(path))
     scanner.scan(/^#!.*?$/)

@@ -55,7 +55,7 @@ class MethodTest < Test::Unit::TestCase
   #
   
   def test_parse_args_documentation
-    assert_equal ["a", "b='default'", "&block"], Method.parse_args("(a, b='default', &block)")
+    assert_equal ["a", "b='default'", "*c", "&block"], Method.parse_args("(a, b='default', *c, &block)")
   end
   
   def test_parse_args

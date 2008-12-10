@@ -19,8 +19,7 @@ module Lazydoc
   class Method < Comment
     class << self
       
-      # Generates a regexp matching a standard definition of the
-      # specified method.
+      # Generates a regexp matching a standard definition of method_name.
       #
       #   m = Method.method_regexp("method")
       #   m =~ "def method"                       # => true
@@ -32,11 +31,11 @@ module Lazydoc
       end
       
       # Parses an argument string (anything following the method name in a
-      # standard method definition, including parenthesis/comments/default
-      # values etc) into an array of strings.
+      # standard method definition, including parenthesis, comments, default
+      # values, etc) into an array of strings.
       #
-      #   Method.parse_args("(a, b='default', &block)")  
-      #   # => ["a", "b='default'", "&block"]
+      #   Method.parse_args("(a, b='default', *c, &block)")  
+      #   # => ["a", "b='default'", "*c", "&block"]
       #
       # Note the %-syntax for strings and arrays is not fully supported,
       # ie %w, %Q, %q, etc. may not parse correctly.  The same is true

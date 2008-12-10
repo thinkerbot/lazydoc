@@ -21,12 +21,11 @@ module Lazydoc
     attr_reader :source_file
   
     # An array of Comment objects identifying lines 
-    # resolved or to-be-resolved
+    # to be resolved
     attr_reader :comments
   
-    # A hash of [const_name, attributes] pairs tracking the constant 
-    # attributes resolved or to-be-resolved for self.  Attributes
-    # are hashes of [key, comment] pairs.
+    # A nested hash of (const_name, (key, comment)) pairs tracking 
+    # the constant attributes resolved for self.
     attr_reader :const_attrs
   
     # The default constant name used when no constant name
@@ -101,7 +100,7 @@ module Lazydoc
       comment
     end
     
-    # Registers a regexp matching the first method by the specified name.
+    # Registers a regexp matching the first definition of method_name.
     def register_method(method_name, comment_class=Method)
       register(Method.method_regexp(method_name), comment_class)
     end
@@ -155,7 +154,11 @@ module Lazydoc
     
       @resolved = true
     end
-  
+    
+    # Returns a nested hash of (const_name, (key, comment)) pairs. Constants 
+    # that have no attributes assigned to them are omitted.  A block may
+    # be provided to collect values from the comments; each comment will
+    # be yielded to the block and the return stored in it's place.
     def to_hash
       const_hash = {}
       const_attrs.each_pair do |const_name, attributes|

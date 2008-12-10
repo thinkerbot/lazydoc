@@ -16,9 +16,9 @@ module Lazydoc
   # 
   module Attributes
 
-    # The source_file for self.  By default set to the file where
-    # Attributes extends a class (if you include Attributes, you
-    # must set source_file manually).
+    # The source file for the extended class.  By default source_file
+    # is set to the file where Attributes extends the class (if you 
+    # include Attributes, you must set source_file manually).
     attr_accessor :source_file
     
     def self.extended(base) # :nodoc:
@@ -26,7 +26,7 @@ module Lazydoc
       base.source_file ||= $1
     end
 
-    # Returns the lazydoc for source_file
+    # Returns the Document for source_file
     def lazydoc(resolve=true)
       lazydoc = Lazydoc[source_file]
       lazydoc.resolve if resolve

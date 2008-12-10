@@ -325,6 +325,8 @@ ignored
     assert_equal "trailer", Comment.scan_trailer("str with # trailer")
     assert_equal "trailer", Comment.scan_trailer("'# in str' # trailer")
     assert_equal nil, Comment.scan_trailer("str with without trailer")
+    
+    assert_equal "in str} # trailer", Comment.scan_trailer("%Q{# in str} # trailer")
   end
   
   def test_scan_trailer_returns_nil_for_strings_without_a_trailer
