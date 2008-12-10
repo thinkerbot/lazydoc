@@ -9,7 +9,6 @@ Gem::Specification.new do |s|
   s.require_path = "lib"
   s.rubyforge_project = "tap"
   s.has_rdoc = true
-  s.add_development_dependency "tap", ">= 0.11.1"
 
   # list extra rdoc files here.
   s.extra_rdoc_files = %W{

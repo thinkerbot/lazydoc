@@ -1,4 +1,4 @@
-require  File.join(File.dirname(__FILE__), '../tap_test_helper')
+require 'test/unit'
 require 'lazydoc/comment'
 
 class CommentTest < Test::Unit::TestCase

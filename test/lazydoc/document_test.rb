@@ -1,10 +1,9 @@
-require  File.join(File.dirname(__FILE__), '../tap_test_helper')
+require 'test/unit'
 require 'lazydoc/document'
 require 'tempfile'
 
 class DocumentTest < Test::Unit::TestCase
   include Lazydoc
-  include Tap::Test::SubsetTest
   
   attr_reader :doc
 
