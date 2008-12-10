@@ -25,8 +25,7 @@ module Lazydoc
   
   module_function
   
-  # A hash of (source_file, lazydoc) pairs tracking the
-  # Lazydoc instance for the given source file.
+  # An array of documents registered with Lazydoc.
   def registry
     @registry ||= []
   end
@@ -67,14 +66,6 @@ module Lazydoc
   def register_caller(comment_class=Comment, caller_index=1)
     caller[caller_index] =~ CALLER_REGEXP
     Lazydoc[$1].register($3.to_i - 1, comment_class)
-  end
-  
-  # Resolves all lazydocs which include the specified code comments.
-  def resolve_comments(comments)
-    registry.each do |doc|
-      next if (comments & doc.comments).empty?
-      doc.resolve
-    end
   end
   
   # Scans the specified file for attributes keyed by key and stores 

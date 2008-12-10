@@ -266,10 +266,14 @@ module Lazydoc
     # the subject line during resolve
     attr_accessor :line_number
   
-    def initialize(line_number=nil)
+    # A back-reference to the Document that registered self.
+    attr_accessor :document
+    
+    def initialize(line_number=nil, document=nil)
       @content = []
       @subject = nil
       @line_number = line_number
+      @document = document
     end
     
     # Alias for subject
@@ -426,9 +430,12 @@ module Lazydoc
     #   c.content     # => [["this is the content of the comment", "for method_one"]]
     #
     # Lines may be an array or a string; string inputs are split into an
-    # array along newline boundaries.
+    # array along newline boundaries.  If nil is provided for lines, 
+    # the document for self will be resolved, if set, and in effect the 
+    # document will re-resolve self with the appropriate lines.
     #
-    # === dynamic line numbers
+    # ==== dynamic line numbers
+    #
     # The line_number used by resolve may be determined dynamically from
     # lines by setting line_number to a Regexp and Proc. In the case
     # of a Regexp, the first line matching the regexp is used:
@@ -450,8 +457,15 @@ module Lazydoc
     #
     # As shown in the examples, in both cases the dynamically determined
     # line_number overwrites the Regexp or Proc.
-    def resolve(lines)
-      lines = lines.split(/\r?\n/) if lines.kind_of?(String)
+    def resolve(lines=nil)
+      lines = case lines
+      when String 
+        lines.split(/\r?\n/)
+      when nil
+        document.resolve if document
+        return self
+      else lines
+      end
     
       # resolve late-evaluation line numbers
       n = case line_number

@@ -94,7 +94,7 @@ module Lazydoc
       comment = comments.find {|c| c.class == comment_class && c.line_number == line_number }
     
       if comment == nil
-        comment = comment_class.new(line_number)
+        comment = comment_class.new(line_number, self)
         comments << comment
       end
     

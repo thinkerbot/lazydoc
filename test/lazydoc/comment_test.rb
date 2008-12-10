@@ -372,6 +372,7 @@ ignored
     assert_equal [], c.content
     assert_equal nil, c.subject
     assert_equal nil, c.line_number
+    assert_equal nil, c.document
   end
   
   #
@@ -581,6 +582,25 @@ subject
    c.resolve(str)
    assert_equal "subject", c.subject
    assert_equal [["comment parsed", "up from line number"]], c.content
+  end
+  
+  class MockDocumentForResolve
+    attr_reader :resolve_called
+    
+    def initialize
+      @resolve_called = false
+    end
+    
+    def resolve
+      @resolve_called = true
+    end
+  end
+  
+  def test_resolve_resolves_lazydoc_if_nil_is_provided_as_lines
+    doc = MockDocumentForResolve.new
+    c.document = doc
+    c.resolve(nil)
+    assert doc.resolve_called
   end
   
   def test_resolve_returns_self

@@ -119,6 +119,11 @@ class DocumentTest < Test::Unit::TestCase
     assert_equal([c1, c2, c3], doc.comments)
   end
   
+  def test_register_sets_self_as_comment_document
+    c = doc.register(1)
+    assert_equal doc, c.document
+  end
+  
   #
   # register_method test
   #
