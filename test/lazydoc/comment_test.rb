@@ -732,23 +732,35 @@ subject
   end
   
   #
+  # comment test
+  #
+  
+  def test_comment_joins_lines_with_separators
+    c.push "some line"
+    c.push "fragments"
+    c.push ["a", "whole", "new line"]
+    
+    assert_equal "some line.fragments:a.whole.new line", c.comment('.', ':')
+  end
+  
+  def test_comment_does_not_join_lines_when_line_sep_is_nil
+    c.push "some line"
+    c.push "fragments"
+    c.push ["a", "whole", "new line"]
+    
+    assert_equal ["some line.fragments", "a.whole.new line"], c.comment('.', nil)
+  end
+  
+  #
   # to_s test
   #
   
-  def test_to_s_joins_lines_with_separators
+  def test_to_s_returns_comment
     c.push "some line"
     c.push "fragments"
     c.push ["a", "whole", "new line"]
     
-    assert_equal "some line.fragments:a.whole.new line", c.to_s('.', ':')
-  end
-  
-  def test_to_s_does_not_join_lines_when_line_sep_is_nil
-    c.push "some line"
-    c.push "fragments"
-    c.push ["a", "whole", "new line"]
-    
-    assert_equal ["some line.fragments", "a.whole.new line"], c.to_s('.', nil)
+    assert_equal "some line fragments\na whole new line", c.to_s
   end
   
   class MockDocumentForToS

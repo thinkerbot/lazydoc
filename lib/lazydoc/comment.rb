@@ -521,8 +521,7 @@ module Lazydoc
     
     # Returns content as a string where line fragments are joined by
     # fragment_sep and lines are joined by line_sep. 
-    def to_s(fragment_sep=" ", line_sep="\n", strip=true)
-      resolve
+    def comment(fragment_sep=" ", line_sep="\n", strip=true)
       lines = content.collect {|line| line.join(fragment_sep)}
     
       # strip leading an trailing whitespace lines
@@ -533,7 +532,13 @@ module Lazydoc
     
       line_sep ? lines.join(line_sep) : lines
     end
-  
+    
+    # Self-resolves and returns comment.
+    def to_s(fragment_sep=" ", line_sep="\n", strip=true)
+      resolve
+      comment(fragment_sep, line_sep, strip)
+    end
+    
     # Like to_s, but wraps the content to the specified number of cols
     # and expands tabs to tabsize spaces.
     def wrap(cols=80, tabsize=2, line_sep="\n", fragment_sep=" ", strip=true)
