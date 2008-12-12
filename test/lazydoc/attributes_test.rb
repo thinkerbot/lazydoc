@@ -21,9 +21,6 @@ class AttributesTest < Test::Unit::TestCase
 
   # AttributesTest::LazyClass::lazy subject
   # comment
-  #
-  # AttributesTest::LazyClass::lazy_subject subject
-  # comment
   class LazyClass
     class << self
       include Lazydoc::Attributes
@@ -32,7 +29,6 @@ class AttributesTest < Test::Unit::TestCase
     self.source_file = __FILE__
     
     lazy_attr :lazy
-    lazy_attr :lazy_subject, :subject
     lazy_attr :unknown
   end
   
@@ -42,11 +38,6 @@ class AttributesTest < Test::Unit::TestCase
     assert_equal Lazydoc::Comment, LazyClass.lazy.class
     assert_equal "subject", LazyClass.lazy.subject
     assert_equal "comment", LazyClass.lazy.to_s
-  end
-  
-  def test_lazy_attr_applies_conversion_if_specified
-    assert_equal "subject", LazyClass.lazy_subject
-    assert_equal "subject", LazyClass.lazy_subject(false).subject
   end
   
   def test_lazy_attr_creates_new_comment_for_unknown_attributes
