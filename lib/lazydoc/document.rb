@@ -37,14 +37,20 @@ module Lazydoc
   
     # Flag indicating whether or not self has been resolved
     attr_accessor :resolved
+    
+    # A nested hash of (const_name, (key, comment_class)) pairs tracking the
+    # constant class used to resolve a specific constant attribute.  By 
+    # default comment_class_map is nil, and is dynamically initialized by 
+    # calls to register_comment_class.
+    attr_reader :comment_class_map
   
     def initialize(source_file=nil, default_const_name='')
       self.source_file = source_file
       @default_const_name = default_const_name
       @comments = []
       @const_attrs = {}
+      @comment_class_map = nil
       @resolved = false
-      self.reset
     end
   
     # Resets self by clearing const_attrs, comments, and setting
@@ -56,6 +62,7 @@ module Lazydoc
       @const_attrs.clear
       @comments.clear
       @resolved = false
+      @comment_class_map = nil
       self
     end
   
@@ -108,6 +115,30 @@ module Lazydoc
       register(Method.method_regexp(method_name), comment_class)
     end
     
+    # Registers a comment class to a constant attribute.  During resolve,
+    # a registered comment classes will be used instead of Comment to
+    # parse the specified constant attribute.  Returns self.
+    #
+    # Note: const_name and key are stringified to facilitate lookup.
+    def register_comment_class(const_name, key, comment_class=Comment)
+      return self if comment_class == Comment
+      
+      # initialize comment_class_map if necessary
+      ccm = @comment_class_map ||= Hash.new({})
+      
+      # set the mapping.  note that a manual, fancy version of or-equals
+      # is required to set the hash for const_name because the default
+      # return from comment_class_map is a Hash
+      const_name = const_name.to_s
+      if ccm.has_key?(const_name) 
+        ccm[const_name]
+      else
+        ccm[const_name] = {}
+      end[key.to_s] = comment_class
+      
+      self
+    end
+    
     # Registers the next comment.
     #
     #   lazydoc = Document.new(__FILE__)
@@ -143,7 +174,7 @@ module Lazydoc
       return(false) if resolved
     
       str = File.read(source_file) if str == nil
-      Lazydoc.parse(str) do |const_name, key, comment|
+      Lazydoc.parse(str, comment_class_map) do |const_name, key, comment|
         const_name = default_const_name if const_name.empty?
         self[const_name][key] = comment
       end

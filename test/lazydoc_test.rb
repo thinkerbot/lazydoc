@@ -285,6 +285,25 @@ blah blah # ::key value7
    assert_equal [['comment2 spanning', 'multiple lines']], results[1]
   end
 
+  def test_parse_parses_using_mapped_comment_classes
+    comment_class_map = Hash.new({})
+    comment_class_map['Name::Space'] = {'alt' => Lazydoc::Subject}
+    
+    results = []
+    Lazydoc.parse(%Q{
+# Name::Space::key value
+# comment 
+# Name::Space::alt value
+# comment
+}, comment_class_map) do |namespace, key, comment|
+     results << [namespace, key, comment.class]
+   end
+   
+   assert_equal 2, results.length
+   assert_equal ['Name::Space', 'key', Lazydoc::Comment], results[0]
+   assert_equal ['Name::Space', 'alt', Lazydoc::Subject], results[1]
+  end
+    
   def test_parse_ignores
     results = []
     Lazydoc.parse(%Q{

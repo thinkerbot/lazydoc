@@ -34,10 +34,11 @@ module Lazydoc
     end
 
     # Creates a lazy attribute accessor for the specified attribute.
-    def lazy_attr(key, attribute=key)
+    def lazy_attr(key, comment_class=Comment, attribute=key)
+      Lazydoc[source_file].register_comment_class(to_s, key, comment_class)
       instance_eval %Q{
 def #{key}
-  lazydoc[to_s]['#{attribute}'] ||= Lazydoc::Comment.new
+  lazydoc[to_s]['#{attribute}'] ||= #{comment_class}.new
 end
 
 def #{key}=(comment)

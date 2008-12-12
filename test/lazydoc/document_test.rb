@@ -39,6 +39,7 @@ class DocumentTest < Test::Unit::TestCase
     assert_equal('', doc.default_const_name)
     assert_equal({}, doc.const_attrs)
     assert_equal([], doc.comments)
+    assert_equal(nil, doc.comment_class_map)
     assert !doc.resolved
   end
 
@@ -138,6 +139,40 @@ class DocumentTest < Test::Unit::TestCase
 
     assert_equal "register_method_name", m.method_name
     assert_equal "this is the register_method_name comment", m.to_s
+  end
+  
+  #
+  # register_comment_class test
+  #
+  
+  def test_register_comment_class_returns_self
+    lazydoc = Document.new
+    assert_equal lazydoc, lazydoc.register_comment_class('ClassName', 'key')
+    assert_equal lazydoc, lazydoc.register_comment_class('ClassName', 'key', Lazydoc::Subject)
+  end
+  
+  def test_register_comment_class_does_nothing_for_Comment_comment_class
+    lazydoc = Document.new
+    assert_equal nil, lazydoc.comment_class_map
+    
+    lazydoc.register_comment_class('ClassName', 'key', Lazydoc::Comment)
+    assert_equal nil, lazydoc.comment_class_map
+  end
+  
+  def test_register_comment_class_registers_non_Comment_comment_classes
+    lazydoc = Document.new
+    assert_equal nil, lazydoc.comment_class_map
+    
+    lazydoc.register_comment_class('ClassName', 'key', Lazydoc::Subject)
+    assert_equal({'ClassName' => {'key' => Lazydoc::Subject}}, lazydoc.comment_class_map)
+  end
+  
+  def test_comment_class_map_returns_nil_for_unregistred_nested_pairs
+    lazydoc = Document.new
+    lazydoc.register_comment_class('ClassName', 'key', Lazydoc::Subject)
+    
+    assert_equal nil, lazydoc.comment_class_map['ClassName']['unknown_key']
+    assert_equal nil, lazydoc.comment_class_map['UnknownClassName']['unknown_key']
   end
   
   # 

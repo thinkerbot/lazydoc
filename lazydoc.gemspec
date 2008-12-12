@@ -26,6 +26,7 @@ Gem::Specification.new do |s|
     lib/lazydoc/comment.rb
     lib/lazydoc/document.rb
     lib/lazydoc/method.rb
+    lib/lazydoc/subject.rb
     lib/lazydoc/trailer.rb
   }
 end
