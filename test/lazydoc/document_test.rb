@@ -54,7 +54,6 @@ class DocumentTest < Test::Unit::TestCase
 
   def test_source_file_may_be_set_to_nil
     doc.source_file = "path/to/file.txt"
-    assert_not_nil doc.source_file
     doc.source_file = nil
     assert_nil doc.source_file
   end

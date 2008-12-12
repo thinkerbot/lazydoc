@@ -5,7 +5,7 @@ require 'benchmark'
 class LazydocBenchmark < Test::Unit::TestCase
 
   def test_scan_speed
-    puts method_name
+    puts "test_scan_speed"
     Benchmark.bm(25) do |x|
       str = %Q{#              key value} * 100
       n = 1000
@@ -39,7 +39,7 @@ class LazydocBenchmark < Test::Unit::TestCase
   end
 
   def test_parse_speed
-    puts method_name
+    puts "test_parse_speed"
     Benchmark.bm(25) do |x|
       comment = %Q{
 # comment spanning

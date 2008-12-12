@@ -280,8 +280,8 @@ ignored
   end
   
   def test_parse_can_handle_an_empty_or_whitespace_string_without_error
-    assert_nothing_raised { Comment.parse("") }
-    assert_nothing_raised { Comment.parse("\n   \t \r\n \f ") }
+    Comment.parse("")
+    Comment.parse("\n   \t \r\n \f ")
   end
   
   #
@@ -675,9 +675,9 @@ subject
     assert_equal [], c.content
   end
   
-  def test_resolve_raises_a_range_error_when_line_number_is_out_of_lines
+  def test_resolve_raisess_a_range_error_when_line_number_is_out_of_lines
     c.line_number = 2
-    e = assert_raise(RangeError) { c.resolve ["", ""] }
+    e = assert_raises(RangeError) { c.resolve ["", ""] }
     assert_equal "line_number outside of lines: 2 (2)", e.message
   end
   

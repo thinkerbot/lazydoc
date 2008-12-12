@@ -36,14 +36,14 @@ class LazydocTest < Test::Unit::TestCase
   def test_lazydoc_syntax
     assert_equal "true", eval("SyntaxSample::m")
 
-    assert_raise(SyntaxError) { eval("::m") }
-    assert_raise(SyntaxError) { eval("SyntaxSample ::m") }
+    assert_raises(SyntaxError) { eval("::m") }
+    assert_raises(SyntaxError) { eval("SyntaxSample ::m") }
 
-    assert_raise(SyntaxError) { eval(":::-") }
-    assert_raise(SyntaxError) { eval("SyntaxSample :::-") }
+    assert_raises(SyntaxError) { eval(":::-") }
+    assert_raises(SyntaxError) { eval("SyntaxSample :::-") }
 
-    assert_raise(SyntaxError) { eval(":::+") }
-    assert_raise(SyntaxError) { eval("SyntaxSample :::+") }
+    assert_raises(SyntaxError) { eval(":::+") }
+    assert_raises(SyntaxError) { eval("SyntaxSample :::+") }
   end
   
   #
