@@ -56,7 +56,7 @@ Rake::RDocTask.new(:rdoc) do |rdoc|
   spec = gemspec
   
   rdoc.rdoc_dir = 'rdoc'
-  rdoc.title    = 'lazydoc'
+  rdoc.title    = 'Lazydoc'
   rdoc.main     = 'README'
   rdoc.options << '--line-numbers' << '--inline-source'
   rdoc.rdoc_files.include( spec.extra_rdoc_files )

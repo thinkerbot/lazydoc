@@ -751,6 +751,23 @@ subject
     assert_equal ["some line.fragments", "a.whole.new line"], c.to_s('.', nil)
   end
   
+  class MockDocumentForToS
+    def initialize(comment)
+      @c = comment
+    end
+    
+    def resolve
+      @c.push "some line"
+      @c.push "fragments"
+    end
+  end
+  
+  def test_to_s_resolves_self
+    c.document = MockDocumentForToS.new(c)
+    assert_equal [], c.content
+    assert_equal "some line.fragments", c.to_s('.', ':')
+  end
+  
   #
   # wrap test
   #

@@ -460,11 +460,11 @@ module Lazydoc
     # overwrites the Regexp or Proc.
     def resolve(lines=nil)
       lines = case lines
-      when String 
-        lines.split(/\r?\n/)
       when nil
         document.resolve if document
         return self
+      when String 
+        lines.split(/\r?\n/)
       else lines
       end
     
@@ -522,6 +522,7 @@ module Lazydoc
     # Returns content as a string where line fragments are joined by
     # fragment_sep and lines are joined by line_sep. 
     def to_s(fragment_sep=" ", line_sep="\n", strip=true)
+      resolve
       lines = content.collect {|line| line.join(fragment_sep)}
     
       # strip leading an trailing whitespace lines

@@ -9,6 +9,7 @@ Gem::Specification.new do |s|
   s.require_path = "lib"
   s.rubyforge_project = "tap"
   s.has_rdoc = true
+  s.rdoc_options.concat %w{--title Lazydoc --main README --line-numbers --inline-source}
 
   # list extra rdoc files here.
   s.extra_rdoc_files = %W{
@@ -20,9 +21,11 @@ Gem::Specification.new do |s|
   # check this manifest using 'rake :print_manifest'
   s.files = %W{
     lib/lazydoc.rb
+    lib/lazydoc/arguments.rb
     lib/lazydoc/attributes.rb
     lib/lazydoc/comment.rb
     lib/lazydoc/document.rb
     lib/lazydoc/method.rb
+    lib/lazydoc/trailer.rb
   }
 end
