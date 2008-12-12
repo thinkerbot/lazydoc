@@ -161,15 +161,7 @@ module Lazydoc
   #   # ['', 'another', 'subject for another', 'comment for another']]
   #
   # Returns the StringScanner used during scanning.
-  #
-  # ==== Comment Class Map
-  #
-  # A comment_class_map may be specified to parse constant attributes using
-  # a non-Comment class.  Simply have comment_class_map[const_name][key]
-  # return the appropriate class (note that in order to prevent errors,
-  # comment_class_map should return an empty Hash by default).
-  #
-  def parse(str, comment_class_map=nil) # :yields: const_name, key, comment
+  def parse(str) # :yields: const_name, key, comment
     scanner = case str
     when StringScanner then str
     when String then StringScanner.new(str)
@@ -177,13 +169,7 @@ module Lazydoc
     end
     
     scan(scanner, '[a-z_]+') do |const_name, key, value|
-      comment_class = if comment_class_map
-        comment_class_map[const_name][key] || Comment
-      else
-        Comment
-      end
-      
-      comment = comment_class.parse(scanner, false) do |line|
+      comment = Comment.parse(scanner, false) do |line|
         if line =~ ATTRIBUTE_REGEXP
           # rewind to capture the next attribute unless an end is specified.
           scanner.unscan unless $4 == '-' && $3 == key && $1.to_s == const_name

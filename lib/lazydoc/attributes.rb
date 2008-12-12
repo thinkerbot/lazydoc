@@ -34,11 +34,17 @@ module Lazydoc
     end
 
     # Creates a lazy attribute accessor for the specified attribute.
-    def lazy_attr(key, comment_class=Comment, attribute=key)
-      Lazydoc[source_file].register_comment_class(to_s, key, comment_class)
+    def lazy_attr(key, conversion=nil, attribute=key)
       instance_eval %Q{
-def #{key}
-  lazydoc[to_s]['#{attribute}'] ||= #{comment_class}.new
+def #{key}#{conversion ? "(convert=true)" : ''}
+  comment = lazydoc[to_s]['#{attribute}']
+  comment = if superclass.respond_to?(:#{key})
+    superclass.#{key}
+  else
+    lazydoc[to_s]['#{attribute}'] = Comment.new
+  end unless comment
+  
+  #{conversion ? "convert ? comment.send(:#{conversion}) : " : ''}comment
 end
 
 def #{key}=(comment)
