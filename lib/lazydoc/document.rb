@@ -3,6 +3,7 @@ require 'lazydoc/method'
 
 module Lazydoc
   autoload(:Arguments, 'lazydoc/arguments')
+  autoload(:Subject, 'lazydoc/subject')
   autoload(:Trailer, 'lazydoc/trailer')
   
   # A Document tracks constant attributes and code comments for a particular

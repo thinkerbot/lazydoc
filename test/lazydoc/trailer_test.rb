@@ -4,7 +4,7 @@ require 'lazydoc/document'
 class TrailerTest < Test::Unit::TestCase
   include Lazydoc
   
-  def test_arguments_documentation
+  def test_trailer_documentation
     t = Trailer.new
     t.subject = "def method  # trailer string"
     assert_equal "trailer string", t.to_s
