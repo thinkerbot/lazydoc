@@ -1,6 +1,11 @@
 require 'lazydoc'
 
 module Lazydoc
+  
+  class Attribute < Subject
+      
+  end
+  
   # Attributes adds methods to declare class-level accessors for Lazydoc 
   # attributes.
   #
@@ -25,6 +30,10 @@ module Lazydoc
       caller[1] =~ CALLER_REGEXP
       base.source_file ||= $1
     end
+    
+    def const_attrs
+      @const_attrs ||= {}
+    end
 
     # Returns the Document for source_file
     def lazydoc(resolve=true)
@@ -34,19 +43,20 @@ module Lazydoc
     end
 
     # Creates a lazy attribute accessor for the specified attribute.
-    def lazy_attr(key, attribute=key)
+    def lazy_attr(key, comment_class=Subject)
       instance_eval %Q{
-def #{key}
-  lazydoc[to_s]['#{attribute}'] ||= Comment.new
+def #{key}(resolve=true)
+  Lazydoc[source_file].resolve if resolve
+  const_attrs['#{key}'] || #{comment_class}.new
 end
 
 def #{key}=(comment)
-  Lazydoc[source_file][to_s]['#{attribute}'] = comment
+  const_attrs['#{key}'] = comment
 end}
     end
     
     # Registers the next method.
-    def register_method___(comment_class=Method)
+    def register_method___(key, comment_class=Method)
       lazydoc(false).register___(comment_class, 1)
     end
   end

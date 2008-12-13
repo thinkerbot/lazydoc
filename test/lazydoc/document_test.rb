@@ -2,6 +2,14 @@ require 'test/unit'
 require 'lazydoc/document'
 require 'tempfile'
 
+module Const
+  module Name
+    def self.const_attrs
+      @const_attrs ||= {}
+    end
+  end
+end
+
 class DocumentTest < Test::Unit::TestCase
   include Lazydoc
   
@@ -16,17 +24,7 @@ class DocumentTest < Test::Unit::TestCase
   #
   
   def test_documentation
-    tempfile = Tempfile.new('document_test')
-    tempfile << %Q{
-# KeyWithConst::key value a
-# ::key value b
-}
-    tempfile.close
-    
-    doc = Document.new(tempfile.path, 'DefaultConst')
-    doc.resolve
-    assert_equal 'value a', doc['KeyWithConst']['key'].value
-    assert_equal 'value b', doc['DefaultConst']['key'].value
+
   end
   
   #
@@ -36,8 +34,7 @@ class DocumentTest < Test::Unit::TestCase
   def test_initialize
     doc = Document.new
     assert_equal(nil, doc.source_file)
-    assert_equal('', doc.default_const_name)
-    assert_equal({}, doc.const_attrs)
+    assert_equal({}, doc.const_lookup)
     assert_equal([], doc.comments)
     assert !doc.resolved
   end
@@ -59,47 +56,20 @@ class DocumentTest < Test::Unit::TestCase
   end
   
   #
-  # default_const_name= test
+  # default_const= test
   #
 
-  def test_set_default_const_name_sets_the_default_const_name
-    assert_equal('', doc.default_const_name)
-    doc.default_const_name = 'Const::Name'
-    assert_equal('Const::Name', doc.default_const_name)
+  def test_set_default_const_sets_the_default_const
+    assert_equal(nil, doc.default_const)
+    doc.default_const = Const::Name
+    assert_equal(Const::Name, doc.default_const)
   end
-
-  def test_set_default_const_name_merges_any_existing_default_const_attrs_with_const_attrs_for_the_new_name
-    doc['']['one'] = 'value one'
-    doc['']['two'] = 'value two'
-    doc['New']['two'] = 'New value two'
-    doc['New']['three'] = 'New value three'
-    
-    assert_equal({
-      '' => {'one' => 'value one', 'two' => 'value two'},
-      'New' => {'two' => 'New value two', 'three' => 'New value three'},
-    }, doc.const_attrs)
-    
-    doc.default_const_name = 'New'
-    assert_equal({
-      'New' => {'one' => 'value one',  'two' => 'value two', 'three' => 'New value three'},
-    }, doc.const_attrs)
+  
+  def test_set_default_const_actually_sets_the_empty_string_value_in_const_lookup
+    doc.default_const = Const::Name
+    assert_equal({'' => Const::Name}, doc.const_lookup)
   end
-
-  #
-  # AGET test
-  #
-
-  def test_AGET_returns_attributes_associated_with_the_const_name
-    doc.const_attrs['Const::Name'] = {:one => 1}
-    assert_equal({:one => 1}, doc['Const::Name'])
-  end
-
-  def test_AGET_initializes_hash_in_const_attrs_if_const_attrs_does_not_have_const_name_as_a_key
-    assert doc.const_attrs.empty?
-    assert_equal({}, doc['Const::Name'])
-    assert_equal({'Const::Name' => {}}, doc.const_attrs)
-  end
-
+  
   #
   # register test
   #
@@ -213,14 +183,12 @@ not a subject line
 
   def test_resolve_reads_const_attrs_from_str
     doc.resolve %Q{
-# Name::Space::key subject line
+# Const::Name::key subject line
 # attribute comment
 }
-
-    assert doc.const_attrs.has_key?('Name::Space')
-    assert doc.const_attrs['Name::Space'].has_key?('key')
-    assert_equal [['attribute comment']], doc.const_attrs['Name::Space']['key'].content
-    assert_equal 'subject line', doc.const_attrs['Name::Space']['key'].subject
+    const_attr = Const::Name.const_attrs['key']
+    assert_equal 'attribute comment', const_attr.comment
+    assert_equal 'subject line', const_attr.subject
   end
 
   def test_resolve_reads_str_from_source_file_if_str_is_unspecified
@@ -229,7 +197,7 @@ not a subject line
 # comment one
 subject line one
 
-# Name::Space::key subject line
+# Const::Name::key subject line
 # attribute comment 
 }
     tempfile.close
@@ -238,14 +206,13 @@ subject line one
     c = doc.register(2)
     doc.resolve
 
-    assert_equal [['comment one']], c.content
+    assert_equal 'comment one', c.comment
     assert_equal "subject line one", c.subject
     assert_equal 2, c.line_number
 
-    assert doc.const_attrs.has_key?('Name::Space')
-    assert doc.const_attrs['Name::Space'].has_key?('key')
-    assert_equal [['attribute comment']], doc.const_attrs['Name::Space']['key'].content
-    assert_equal 'subject line', doc.const_attrs['Name::Space']['key'].subject
+    const_attr = Const::Name.const_attrs['key']
+    assert_equal 'attribute comment', const_attr.comment
+    assert_equal 'subject line', const_attr.subject
   end
 
   def test_resolve_sets_resolved_to_true
@@ -263,7 +230,7 @@ subject line one
     doc.comments << c2
     assert !doc.resolve("# comment two\nsubject line two")
 
-    assert_equal [['comment one']], c1.content
+    assert_equal 'comment one', c1.comment
     assert_equal "subject line one", c1.subject
 
     assert_equal [], c2.content

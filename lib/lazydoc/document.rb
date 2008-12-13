@@ -1,3 +1,4 @@
+require 'lazydoc'
 require 'lazydoc/comment'
 require 'lazydoc/method'
 
@@ -27,23 +28,19 @@ module Lazydoc
     # to be resolved
     attr_reader :comments
   
-    # A nested hash of (const_name, (key, comment)) pairs tracking 
-    # the constant attributes resolved for self.
-    attr_reader :const_attrs
-  
     # The default constant name used when no constant name
     # is specified for a constant attribute
-    attr_reader :default_const_name
+    attr_reader :const_lookup
   
     # Flag indicating whether or not self has been resolved
     attr_accessor :resolved
     
-    def initialize(source_file=nil, default_const_name='')
-      self.source_file = source_file
-      @default_const_name = default_const_name
+    def initialize(source_file=nil, default_const=nil)
+      @const_lookup = {}
       @comments = []
-      @const_attrs = {}
       @resolved = false
+      self.source_file = source_file
+      self.default_const = default_const if default_const
     end
   
     # Resets self by clearing const_attrs, comments, and setting
@@ -52,7 +49,6 @@ module Lazydoc
     # allow resolve to re-scan a document, manually set
     # resolved to false.
     def reset
-      @const_attrs.clear
       @comments.clear
       @resolved = false
       self
@@ -62,28 +58,16 @@ module Lazydoc
     def source_file=(source_file)
       @source_file = source_file == nil ? nil : File.expand_path(source_file)
     end
-  
+    
+    def default_const
+      const_lookup['']
+    end
+    
     # Sets the default_const_name for self.  Any const_attrs assigned to 
     # the previous default will be removed and merged with those already 
     # assigned to the new default.
-    def default_const_name=(const_name)
-      self[const_name].merge!(const_attrs.delete(@default_const_name) || {})
-      @default_const_name = const_name
-    end
-  
-    # Returns the attributes for the specified const_name.
-    def [](const_name)
-      const_attrs[const_name] ||= {}
-    end
-    
-    # Returns an array of the const_names in self with at
-    # least one attribute.
-    def const_names
-      names = []
-      const_attrs.each_pair do |const_name, attrs|
-        names << const_name unless attrs.empty?
-      end
-      names
+    def default_const=(const)
+      const_lookup[''] = const
     end
     
     # Register the specified line number to self.  Register
@@ -142,9 +126,26 @@ module Lazydoc
       return(false) if resolved
     
       str = File.read(source_file) if str == nil
-      Lazydoc.parse(str) do |const_name, key, comment|
-        const_name = default_const_name if const_name.empty?
-        self[const_name][key] = comment
+      scanner = case str
+      when StringScanner then str
+      when String then StringScanner.new(str)
+      else raise TypeError, "can't convert #{str.class} into StringScanner or String"
+      end
+      
+      Lazydoc.scan(scanner, '[a-z_]+') do |const_name, key, value|
+        const = const_lookup[const_name] ||= validate(lookup(const_name))
+        comment = const.respond_to?(key) ? const.send(key, false) : Subject.new
+        
+        comment.parse(scanner, value) do |line|
+          if line =~ ATTRIBUTE_REGEXP
+            # rewind to capture the next attribute unless an end is specified.
+            scanner.unscan unless $4 == '-' && $3 == key && $1.to_s == const_name
+            true
+          else false
+          end
+        end
+
+        const.const_attrs[key] = comment
       end
     
       unless comments.empty?
@@ -173,6 +174,24 @@ module Lazydoc
         const_hash[const_name] = attr_hash
       end
       const_hash
+    end
+    
+    protected
+    
+    def lookup(const_name)
+      const_name.split('::').inject(Object) do |current, const|
+        unless current.const_defined?(const)
+          raise "undefined constant: #{const_name}"
+        end
+        current.const_get(const)
+      end
+    end
+    
+    def validate(const)
+      unless const && const.respond_to?(:const_attrs)
+        raise "not a constant that can recieve attributes: #{const}"
+      end
+      const
     end
   end
 end

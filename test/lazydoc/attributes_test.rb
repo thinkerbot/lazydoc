@@ -43,11 +43,8 @@ class AttributesTest < Test::Unit::TestCase
   def test_lazy_attr_creates_new_comment_for_unknown_attributes
     assert LazyClass.respond_to?(:unknown)
     
-    assert_equal Lazydoc::Comment, LazyClass.unknown.class
-    assert_equal nil, LazyClass.unknown.subject
-    
-    comment = Lazydoc[__FILE__]['AttributesTest::LazyClass']['unknown']
-    assert !comment.nil?
-    assert_equal comment, LazyClass.unknown
+    assert_equal Lazydoc::Subject, LazyClass.unknown.class
+    assert_equal '', LazyClass.unknown.to_s
+    assert_equal '', LazyClass.unknown.comment
   end
 end

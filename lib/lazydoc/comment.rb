@@ -98,14 +98,13 @@ module Lazydoc
       #
       # Subject parsing may also be suppressed by setting parse_subject
       # to false.
-      def parse(str, parse_subject=true) # :yields: fragment
+      def parse(str, parse_subject=true, comment=self.new) # :yields: fragment
         scanner = case str
         when StringScanner then str
         when String then StringScanner.new(str)
         else raise TypeError, "can't convert #{str.class} into StringScanner or String"
         end
     
-        comment = self.new
         while scanner.scan(/\r?\n?[ \t]*#[ \t]?(([ \t]*).*?)\r?$/)
           fragment = scanner[1]
           indent = scanner[2]
@@ -498,6 +497,30 @@ module Lazydoc
         n -= 1
       end
      
+      self
+    end
+    
+    def parse(str, subject=nil)
+      scanner = case str
+      when StringScanner then str
+      when String then StringScanner.new(str)
+      else raise TypeError, "can't convert #{str.class} into StringScanner or String"
+      end
+  
+      while scanner.scan(/\r?\n?[ \t]*#[ \t]?(([ \t]*).*?)\r?$/)
+        fragment = scanner[1]
+        indent = scanner[2]
+      
+        # collect continuous description line
+        # fragments and join into a single line
+        if block_given? && yield(fragment)
+          break
+        else
+          Comment.send(:categorize, fragment, indent) {|f| push(f) }
+        end
+      end
+      
+      self.subject = subject
       self
     end
   
