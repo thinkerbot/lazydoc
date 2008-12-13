@@ -2,6 +2,23 @@ require 'test/unit'
 require 'lazydoc/document'
 require 'tempfile'
 
+# used in testing CALLER_REGEXP below
+# (moving these lines will break an assertion)
+module CallerRegexpTestModule
+  module_function
+  def call(method, regexp)
+    send("caller_test_#{method}", regexp)
+  end
+  def caller_test_pass(regexp)
+    caller[0] =~ regexp
+    $~
+  end
+  def caller_test_fail(regexp)
+    "unmatching" =~ regexp
+    $~
+  end
+end
+
 module Const
   module Name
     def self.const_attrs
@@ -20,13 +37,135 @@ class DocumentTest < Test::Unit::TestCase
   end
   
   #
-  # documentation test
+  # ATTRIBUTE_REGEXP test
   #
-  
-  def test_documentation
 
+  def test_ATTRIBUTE_REGEXP
+    r = Lazydoc::ATTRIBUTE_REGEXP
+
+    assert r =~ "::key"
+    assert_equal [nil, "key", ""], [$1, $3, $4]
+    
+    assert r =~ "::key-"
+    assert_equal [nil, "key", "-"], [$1, $3, $4]
+    
+    assert r =~ "Name::Space::key trailer"
+    assert_equal ["Name::Space", "key", ""], [$1, $3, $4]
+
+    assert r =~ "Name::Space::key- trailer"
+    assert_equal ["Name::Space", "key", "-"], [$1, $3, $4]
+    
+    assert r !~ ": :key"
+    assert r !~ "::\nkey"
+    assert r !~ "Name::Space:key"
+    assert r !~ "Name::Space::Key"
+  end
+
+  #
+  # CONSTANT_REGEXP test
+  #
+
+  def test_CONSTANT_REGEXP
+    r = Lazydoc::CONSTANT_REGEXP
+    
+    assert r =~ "# NameSpace"
+    assert_equal "NameSpace", $1 
+    
+    assert r =~ "# Name::Space"
+    assert_equal "Name::Space", $1
+    
+    assert r =~ " text # text Name::Space"
+    assert_equal "Name::Space", $1
+    
+    assert r =~ "# text"
+    assert_equal nil, $1
+    
+    assert r !~ "Name::Space"
   end
   
+  #
+  # CALLER_REGEXP test
+  #
+
+  def test_CALLER_REGEXP
+    r = Lazydoc::CALLER_REGEXP
+    
+    result = CallerRegexpTestModule.call(:pass, r)
+    assert_equal MatchData, result.class
+    assert_equal __FILE__, result[1]
+    assert_equal 10, result[3].to_i
+    
+    assert_nil CallerRegexpTestModule.call(:fail, r)
+  end
+
+  #
+  # scan test
+  #
+
+  def test_scan_documentation
+    str = %Q{
+# Name::Space::key value
+# ::alt alt_value
+# 
+# Ignored::Attribute::not_matched value
+# :::-
+# Ignored::key value
+# :::+
+# Another::key another value
+
+Ignored::key value
+}
+
+    results = []
+    Document.scan(str, 'key|alt') do |const_name, key, value|
+      results << [const_name, key, value]
+    end
+
+    expected = [
+    ['Name::Space', 'key', 'value'], 
+    ['', 'alt', 'alt_value'], 
+    ['Another', 'key', 'another value']]
+
+    assert_equal expected, results
+  end
+
+  def test_scan_only_finds_the_specified_key
+    results = []
+    Document.scan(%Q{
+# Name::Space::key1 value1
+# Name::Space::key value2
+# Name::Space::key value3
+# ::key
+# Name::Space::key1 value4
+}, "key") do |namespace, key, value|
+     results << [namespace, key, value]
+   end
+
+   assert_equal [
+     ["Name::Space", "key", "value2"],
+     ["Name::Space", "key", "value3"],
+     ["",  "key",  ""]
+    ], results
+  end
+
+  def test_scan_skips_areas_flagged_as_off
+    results = []
+    Document.scan(%Q{
+# Name::Space::key value1
+# Name::Space:::-
+# Name::Space::key value2
+# Name::Space:::+
+# Name::Space::key value3
+}, "key") do |namespace, key, value|
+     results << [namespace, key, value]
+   end
+
+   assert_equal [
+     ["Name::Space", "key", "value1"],
+     ["Name::Space", "key", "value3"]
+    ], results
+  end
+
   #
   # initialize test
   #
@@ -97,14 +236,17 @@ class DocumentTest < Test::Unit::TestCase
   #
   
   def test_register_method_registers_the_next_method_matching_method_name
-    lazydoc = Document.new(__FILE__)
-    m = lazydoc.register_method(:register_method_name)
-    
-    # this is the register_method_name comment
-    def register_method_name(a,b,c)
-    end
+    tempfile = Tempfile.new('register_method_test')
+    tempfile << %Q{
+# this is the register_method_name comment
+def register_method_name(a,b,c)
+end  
+}
+    tempfile.close
 
-    lazydoc.resolve
+    doc = Document.new(tempfile.path)
+    m = doc.register_method(:register_method_name)
+    doc.resolve
 
     assert_equal "register_method_name", m.method_name
     assert_equal "this is the register_method_name comment", m.to_s
@@ -115,25 +257,34 @@ class DocumentTest < Test::Unit::TestCase
   #
   
   def test_register___documentation
+    eval %Q{
+class RegisterDocumentationTest < Test::Unit::TestCase
+  def test_register___documentation
     lazydoc = Document.new(__FILE__)
-
+  
     lazydoc.register___
-# this is the comment
-# that is registered
-def method(a,b,c)
-end
-
+    # this is the comment
+    # that is registered
+    def method(a,b,c)
+    end
+  
     lazydoc.resolve
     m = lazydoc.comments[0]
     assert_equal "def method(a,b,c)", m.subject
     assert_equal "this is the comment that is registered", m.to_s
   end
+end
+}
+  end
   
+  def test_register___skips_whitespace_before_and_after_comment
+    eval %Q{
+class RegisterSkipWhitespaceTest < Test::Unit::TestCase
   def test_register___skips_whitespace_before_and_after_comment
     lazydoc = Document.new(__FILE__)
 
     lazydoc.register___
-    
+
 # this is a comment surrounded
 # by whitespace
 
@@ -145,61 +296,143 @@ end
     assert_equal "def skip_method(a,b,c)", m.subject
     assert_equal "this is a comment surrounded by whitespace", m.to_s
   end
+end
+}
+  end
 
   #
   # resolve test
   #
-
-  def test_resolve_parses_comments_from_str_for_source_file
-    str = %Q{
-# comment one
-# spanning multiple lines
-#
-#   indented line
-#    
-subject line one
-
-# comment two
-
-subject line two
-
-# ignored
-not a subject line
-}
-
-    c1 = Comment.new(6)
-    c2 = Comment.new(10)
-    doc.comments.concat [c1, c2]
-    doc.resolve(str)
-
-    assert_equal [['comment one', 'spanning multiple lines'], [''], ['  indented line'], ['']], c1.content
-    assert_equal "subject line one", c1.subject
-    assert_equal 6, c1.line_number
-
-    assert_equal [['comment two']], c2.content
-    assert_equal "subject line two", c2.subject
-    assert_equal 10, c2.line_number
-  end
-
-  def test_resolve_reads_const_attrs_from_str
+    
+  def test_resolve_parses_const_attrs_from_str_and_sets_them_to_the_constant
     doc.resolve %Q{
-# Const::Name::key subject line
-# attribute comment
-}
+    # Const::Name::key subject line
+    # attribute comment
+    }
+    
     const_attr = Const::Name.const_attrs['key']
     assert_equal 'attribute comment', const_attr.comment
     assert_equal 'subject line', const_attr.subject
   end
 
+  def test_resolve_with_various_declaration_syntaxes
+    doc.resolve %Q{
+    # Name::Space::one value1
+    # :startdoc:Name::Space::two value2
+    # :startdoc: Name::Space::three value3
+    # ::four value4
+    # :startdoc::five value5
+    # :startdoc: ::six value6
+    blah blah # ::seven value7
+    # Name::Space::novalue
+    # ::novalue
+    }
+
+   expected = {
+      "Name::Space" => {
+        'one' => 'value1', 
+        'two' => 'value2', 
+        'three' => 'value3', 
+        'novalue' => ''},
+      "" => {
+        'four' => 'value4', 
+        'five' => 'value5', 
+        'six' => 'value6', 
+        'seven' => 'value7',
+        'novalue' => ''}
+    }
+    assert_equal expected, doc.to_hash {|comment| comment.subject}
+  end
+
+  def test_resolve_stops_reading_comment_at_new_declaration_or_end_declaration
+    doc.resolve %Q{
+    # ::one
+    # comment1 spanning
+    # multiple lines
+    # ::two
+    # comment2 spanning
+    # multiple lines
+    # ::two-
+    # ignored
+    }
+
+    one = doc.const_lookup['']['one']
+    assert_equal [['comment1 spanning', 'multiple lines']], one.content
+   
+    two = doc.const_lookup['']['two']
+    assert_equal [['comment2 spanning', 'multiple lines']], two.content
+  end
+
+  def test_resolve_ignores_non_word_keys
+    doc.resolve %Q{
+    # Skipped::Key
+    # skipped::Key
+    # :skipped:
+    # skipped
+    skipped
+    Skipped::key
+    }
+
+    assert doc.const_lookup.empty?
+  end
+    
+  def test_resolve_sets_const_attrs_for_non_existant_constants_in_const_lookup
+    assert !Object.const_defined?(:Non)
+    
+    doc.resolve %Q{
+    # Non::Existant::key subject line
+    # attribute comment
+    }
+
+    const_attr = doc.const_lookup['Non::Existant']['key']
+    assert_equal 'attribute comment', const_attr.comment
+    assert_equal 'subject line', const_attr.subject
+  end
+  
+  def test_resolve_raises_error_if_const_attrs_cannot_be_set_to_an_existing_constant
+    e = assert_raise(RuntimeError) { doc.resolve "# Object::key subject line" }
+    assert_equal "cannot assign constant attributes to: \"Object\"", e.message
+  end
+    
+  def test_resolve_parses_comments_from_str
+    c1 = Comment.new(6)
+    c2 = Comment.new(10)
+    doc.comments.concat [c1, c2]
+    
+    doc.resolve %Q{
+    # comment one
+    # spanning multiple lines
+    #
+    #   indented line
+    #    
+    subject line one
+
+    # comment two
+
+    subject line two
+
+    # ignored
+    not a subject line
+    }
+
+    assert_equal [['comment one', 'spanning multiple lines'], [''], ['  indented line'], ['']], c1.content
+    assert_equal "    subject line one", c1.subject
+    assert_equal 6, c1.line_number
+
+    assert_equal [['comment two']], c2.content
+    assert_equal "    subject line two", c2.subject
+    assert_equal 10, c2.line_number
+  end
+
   def test_resolve_reads_str_from_source_file_if_str_is_unspecified
     tempfile = Tempfile.new('register_test')
     tempfile << %Q{
-# comment one
-subject line one
+    # comment one
+    subject line one
 
-# Const::Name::key subject line
-# attribute comment 
-}
+    # Const::Name::key subject line
+    # attribute comment 
+    }
     tempfile.close
 
     doc.source_file = tempfile.path
@@ -207,7 +440,7 @@ subject line one
     doc.resolve
 
     assert_equal 'comment one', c.comment
-    assert_equal "subject line one", c.subject
+    assert_equal "    subject line one", c.subject
     assert_equal 2, c.line_number
 
     const_attr = Const::Name.const_attrs['key']
@@ -236,5 +469,4 @@ subject line one
     assert_equal [], c2.content
     assert_equal nil, c2.subject
   end
-  
 end

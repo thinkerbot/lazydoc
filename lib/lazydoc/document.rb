@@ -1,11 +1,31 @@
-require 'lazydoc'
 require 'lazydoc/comment'
 require 'lazydoc/method'
 
 module Lazydoc
+  autoload(:Attributes, 'lazydoc/attributes')
   autoload(:Arguments, 'lazydoc/arguments')
   autoload(:Subject, 'lazydoc/subject')
   autoload(:Trailer, 'lazydoc/trailer')
+  
+  # A regexp matching an attribute start or end.  After a match:
+  #
+  #   $1:: const_name
+  #   $3:: key
+  #   $4:: end flag
+  #
+  ATTRIBUTE_REGEXP = /([A-Z][A-z]*(::[A-Z][A-z]*)*)?::([a-z_]+)(-?)/
+
+  # A regexp matching constants from the ATTRIBUTE_REGEXP leader
+  CONSTANT_REGEXP = /#.*?([A-Z][A-z]*(::[A-Z][A-z]*)*)?$/
+  
+  # A regexp matching a caller line, to extract the calling file
+  # and line number.  After a match:
+  #
+  #   $1:: file
+  #   $3:: line number (as a string, obviously)
+  #
+  # Note that line numbers in caller start at 1, not 0.
+  CALLER_REGEXP = /^(([A-z]:)?[^:]+):(\d+)/
   
   # A Document tracks constant attributes and code comments for a particular
   # source file.  Documents may be assigned a default_const_name to be used
@@ -20,6 +40,61 @@ module Lazydoc
   #   doc['DefaultConst']['key'].value      # => 'value b'
   #
   class Document
+    class << self
+      # Scans the string or StringScanner for attributes matching the key
+      # (keys may be patterns; they are incorporated into a regexp).
+      # Regions delimited by the stop and start keys <tt>:::-</tt> and 
+      # <tt>:::+</tt> are skipped. Yields each (const_name, key, value) 
+      # triplet to the block.
+      #
+      #   str = %Q{
+      #   # Name::Space::key value
+      #   # ::alt alt_value
+      #   #
+      #   # Ignored::Attribute::not_matched value
+      #   # :::-
+      #   # Also::Ignored::key value
+      #   # :::+
+      #   # Another::key another value
+      #
+      #   Ignored::key value
+      #   }
+      #
+      #   results = []
+      #   Document.scan(str, 'key|alt') do |const_name, key, value|
+      #     results << [const_name, key, value]
+      #   end
+      #
+      #   results    
+      #   # => [
+      #   # ['Name::Space', 'key', 'value'], 
+      #   # ['', 'alt', 'alt_value'], 
+      #   # ['Another', 'key', 'another value']]
+      #
+      # Returns the StringScanner used during scanning.
+      def scan(str, key) # :yields: const_name, key, value
+        scanner = case str
+        when StringScanner then str
+        when String then StringScanner.new(str)
+        else raise TypeError, "can't convert #{str.class} into StringScanner or String"
+        end
+
+        regexp = /^(.*?)::(:-|#{key})/
+        while !scanner.eos?
+          break if scanner.skip_until(regexp) == nil
+
+          if scanner[2] == ":-"
+            scanner.skip_until(/:::\+/)
+          else
+            next unless scanner[1] =~ CONSTANT_REGEXP
+            key = scanner[2]
+            yield($1.to_s, key, scanner.matched.strip) if scanner.scan(/[ \r\t].*$|$/)
+          end
+        end
+
+        scanner
+      end
+    end
     
     # The source file for self, used during resolve
     attr_reader :source_file
@@ -126,16 +201,34 @@ module Lazydoc
       return(false) if resolved
     
       str = File.read(source_file) if str == nil
+      
       scanner = case str
-      when StringScanner then str
       when String then StringScanner.new(str)
+      when StringScanner then str
       else raise TypeError, "can't convert #{str.class} into StringScanner or String"
       end
       
-      Lazydoc.scan(scanner, '[a-z_]+') do |const_name, key, value|
-        const = const_lookup[const_name] ||= validate(lookup(const_name))
-        comment = const.respond_to?(key) ? const.send(key, false) : Subject.new
+      unless comments.empty?
+        lines = scanner.string.split(/\r?\n/)  
+        comments.each do |comment|
+          comment.parse(lines)
+        end
+      end
+      
+      Document.scan(scanner, '[a-z_]+') do |const_name, key, value|
+        c = const_lookup[const_name] ||= lookup(const_name)
         
+        # initialize the comment that will be parsed
+        comment = case
+        when c.respond_to?(:const_attrs)
+          c.respond_to?(key) ? c.send(key, false) : c.const_attrs[key] ||= Attribute.new
+        when c.kind_of?(Hash)
+          c[key] ||= Attribute.new
+        else
+          raise "cannot assign constant attributes to: #{const_name.inspect}"
+        end
+        
+        # parse the comment
         comment.parse(scanner, value) do |line|
           if line =~ ATTRIBUTE_REGEXP
             # rewind to capture the next attribute unless an end is specified.
@@ -144,17 +237,8 @@ module Lazydoc
           else false
           end
         end
+      end
 
-        const.const_attrs[key] = comment
-      end
-    
-      unless comments.empty?
-        lines = str.split(/\r?\n/)  
-        comments.each do |comment|
-          comment.resolve(lines)
-        end
-      end
-    
       @resolved = true
     end
     
@@ -164,34 +248,27 @@ module Lazydoc
     # be yielded to the block and the return stored in it's place.
     def to_hash
       const_hash = {}
-      const_attrs.each_pair do |const_name, attributes|
+      const_lookup.each_pair do |const_name, const|
+        attributes = const.respond_to?(:const_attrs) ? const.const_attrs : const
         next if attributes.empty?
       
-        attr_hash = {}
+        const_hash[const_name] = attr_hash = {}
         attributes.each_pair do |key, comment|
           attr_hash[key] = (block_given? ? yield(comment) : comment)
         end
-        const_hash[const_name] = attr_hash
       end
       const_hash
     end
     
     protected
     
-    def lookup(const_name)
+    def lookup(const_name) # :nodoc:
+      return {} if const_name.empty?
+      
       const_name.split('::').inject(Object) do |current, const|
-        unless current.const_defined?(const)
-          raise "undefined constant: #{const_name}"
-        end
+        return {} unless current.const_defined?(const)
         current.const_get(const)
       end
-    end
-    
-    def validate(const)
-      unless const && const.respond_to?(:const_attrs)
-        raise "not a constant that can recieve attributes: #{const}"
-      end
-      const
     end
   end
 end

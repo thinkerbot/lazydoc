@@ -1,10 +1,4 @@
-require 'lazydoc'
-
 module Lazydoc
-  
-  class Attribute < Subject
-      
-  end
   
   # Attributes adds methods to declare class-level accessors for Lazydoc 
   # attributes.
@@ -43,11 +37,11 @@ module Lazydoc
     end
 
     # Creates a lazy attribute accessor for the specified attribute.
-    def lazy_attr(key, comment_class=Subject)
+    def lazy_attr(key, comment_class=Attribute)
       instance_eval %Q{
 def #{key}(resolve=true)
   Lazydoc[source_file].resolve if resolve
-  const_attrs['#{key}'] || #{comment_class}.new
+  const_attrs['#{key}'] ||= #{comment_class}.new
 end
 
 def #{key}=(comment)

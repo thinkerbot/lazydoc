@@ -51,33 +51,6 @@ class MethodTest < Test::Unit::TestCase
   end
   
   #
-  # parse_args test
-  #
-  
-  def test_parse_args_documentation
-    assert_equal ["a", "b='default'", "*c", "&block"], Method.parse_args("(a, b='default', *c, &block)")
-  end
-  
-  def test_parse_args
-    assert_equal [""], Method.parse_args("")
-    assert_equal [""], Method.parse_args("# commet, with, comma")
-    
-    assert_equal ["a"], Method.parse_args("a")
-    assert_equal ["a"], Method.parse_args("a # commet, with, comma")
-    
-    assert_equal ["a", "b", "&c"], Method.parse_args("a,b,&c")
-    assert_equal ["a", "b", "&c"], Method.parse_args("(a,b,&c)")
-    assert_equal ["a", "b", "&c"], Method.parse_args("a,b,&c # commet, with, comma")
-    
-    assert_equal ["a", "b", "&c"], Method.parse_args("  a ,b,  &c  ")
-    assert_equal ["a", "b", "&c"], Method.parse_args("  (  a ,b,  &c  )  ")
-    
-    assert_equal ["a=\"str\"", "b='str'", "c=(2+2)"], Method.parse_args("a=\"str\", b='str', c=(2+2)")
-    assert_equal [%q{a='str, with \'scapes # yo'}, "b=((1+1) + 1)"], Method.parse_args(%q{a='str, with \'scapes # yo', b=((1+1) + 1)})
-    assert_equal ["a=[1,2,'three']", "b={:one => 1, :two => 'str'}"], Method.parse_args("a=[1,2,'three'], b={:one => 1, :two => 'str'}")
-  end
-  
-  #
   # documentation test
   #
   
@@ -88,7 +61,7 @@ class MethodTest < Test::Unit::TestCase
     end
     }
   
-    m = Method.parse(sample_method)
+    m = Method.new(2).parse(sample_method)
     assert_equal "method_name", m.method_name
     assert_equal ["a", "b='default'", "&c"], m.arguments
     assert_equal "trailing comment", m.trailer

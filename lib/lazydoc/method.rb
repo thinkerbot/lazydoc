@@ -10,7 +10,7 @@ module Lazydoc
   #   end
   #   }
   #
-  #   m = Method.parse(sample_method)
+  #   m = Method.new(2).parse(sample_method)
   #   m.method_name          # => "method_name"
   #   m.arguments            # => ["a", "b='default'", "&c"]
   #   m.trailer              # => "trailing comment"
@@ -28,67 +28,6 @@ module Lazydoc
       #
       def method_regexp(method_name)
         /^\s*def\s+#{method_name}(\W|$)/
-      end
-      
-      # Parses an argument string (anything following the method name in a
-      # standard method definition, including parenthesis, comments, default
-      # values, etc) into an array of strings.
-      #
-      #   Method.parse_args("(a, b='default', *c, &block)")  
-      #   # => ["a", "b='default'", "*c", "&block"]
-      #
-      # Note the %-syntax for strings and arrays is not fully supported,
-      # ie %w, %Q, %q, etc. may not parse correctly.  The same is true
-      # for multiline argument strings.
-      def parse_args(str)
-        scanner = case str
-        when StringScanner then str
-        when String then StringScanner.new(str)
-        else raise TypeError, "can't convert #{str.class} into StringScanner or String"
-        end
-        str = scanner.string
-        
-        # skip whitespace and leading LPAREN
-        scanner.skip(/\s*\(?\s*/) 
-        
-        args = []
-        brakets = braces = parens = 0
-        start = scanner.pos
-        broke = while scanner.skip(/.*?['"#,\(\)\{\}\[\]]/)
-          pos = scanner.pos - 1
-          
-          case str[pos]
-          when ?,,nil
-            # skip if in brakets, braces, or parenthesis
-            next if parens > 0 || brakets > 0 || braces > 0
-            
-            # ok, found an arg
-            args << str[start, pos-start].strip
-            start = pos + 1
-          
-          when ?# then break(true)                # break on a comment
-          when ?' then skip_quote(scanner, /'/)   # parse over quoted strings
-          when ?" then skip_quote(scanner, /"/)   # parse over double-quoted string
-            
-          when ?( then parens += 1                # for brakets, braces, and parenthesis
-          when ?)                                 # simply track the nesting EXCEPT for
-            break(true) if parens == 0            # RPAREN.  If the closing parenthesis
-            parens -= 1                           # is found, break.
-          when ?[ then braces += 1
-          when ?] then braces -= 1
-          when ?{ then brakets += 1
-          when ?} then brakets -= 1
-          end
-        end
-        
-        # parse out the final arg.  if the loop broke (ie 
-        # a comment or the closing parenthesis was found) 
-        # then the end position is determined by the 
-        # scanner, otherwise take all that remains
-        pos = broke ? scanner.pos-1 : str.length
-        args << str[start, pos-start].strip
-
-        args
       end
     end
     
@@ -119,7 +58,7 @@ module Lazydoc
       end
       
       @method_name = $1
-      @arguments = Method.parse_args($2)
+      @arguments = scan_args($2)
   
       super
     end
