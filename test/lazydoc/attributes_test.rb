@@ -35,9 +35,9 @@ class AttributesTest < Test::Unit::TestCase
   def test_lazy_attr_creates_accessor_for_lazydoc_attribute
     assert LazyClass.respond_to?(:lazy)
     
-    assert_equal Lazydoc::Comment, LazyClass.lazy.class
-    assert_equal "subject", LazyClass.lazy.subject
-    assert_equal "comment", LazyClass.lazy.to_s
+    assert_equal Lazydoc::Subject, LazyClass.lazy.class
+    assert_equal "subject", LazyClass.lazy.to_s
+    assert_equal "comment", LazyClass.lazy.comment
   end
   
   def test_lazy_attr_creates_new_comment_for_unknown_attributes
@@ -49,14 +49,5 @@ class AttributesTest < Test::Unit::TestCase
     comment = Lazydoc[__FILE__]['AttributesTest::LazyClass']['unknown']
     assert !comment.nil?
     assert_equal comment, LazyClass.unknown
-  end
-  
-  class LazySubclass < LazyClass
-    self.source_file = __FILE__
-  end
-  
-  def test_lazy_attr_searches_superclasses_for_attributes
-    assert_nil LazySubclass.lazydoc['LazySubclass']['comment']
-    assert_equal "comment", LazySubclass.lazy.to_s
   end
 end

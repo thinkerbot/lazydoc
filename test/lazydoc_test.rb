@@ -195,7 +195,7 @@ Ignored::key value
 
     results = []
     Lazydoc.parse(str) do |const_name, key, comment|
-      results << [const_name, key, comment.subject, comment.to_s]
+      results << [const_name, key, comment.subject, comment.comment]
     end
 
     expected = [

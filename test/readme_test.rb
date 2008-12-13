@@ -19,7 +19,7 @@ class ReadmeTest < Test::Unit::TestCase
   def test_description_documentation 
     comment = Sample::key
     assert_equal "<value>", comment.value
-    assert_equal "This is the comment content.  A content string can span multiple lines...", comment.to_s
+    assert_equal "This is the comment content.  A content string can span multiple lines...", comment.comment
 
     expected = %q{
 ..............................
@@ -89,7 +89,7 @@ Helpers.new.method_two
      'key' =>     ['value for key', 'comment for key parsed until a non-comment line'],
      'another' => ['value for another', 'comment for another parsed to an end key']
     }}
-    assert_equal expected, doc.to_hash {|c| [c.value, c.to_s] } 
+    assert_equal expected, doc.to_hash {|c| [c.value, c.comment] } 
 
     str = %Q{
 Const::Name::not_parsed
@@ -127,7 +127,7 @@ Const::Name::not_parsed
      'one' => ['hidden in RDoc', '* This line is visible in RDoc.'],
      'two' => ['', 'You can hide attribute comments like this.']
     }}
-    assert_equal(expected, doc.to_hash {|comment| [comment.subject, comment.to_s] })
+    assert_equal(expected, doc.to_hash {|c| [c.subject, c.comment] })
   end
   
   def test_code_comments_usage_documentation

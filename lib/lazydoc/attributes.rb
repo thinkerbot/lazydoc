@@ -37,11 +37,7 @@ module Lazydoc
     def lazy_attr(key, attribute=key)
       instance_eval %Q{
 def #{key}
-  lazydoc[to_s]['#{attribute}'] || if superclass.respond_to?(:#{key})
-    superclass.#{key}
-  else
-    lazydoc[to_s]['#{attribute}'] = Comment.new
-  end
+  lazydoc[to_s]['#{attribute}'] ||= Comment.new
 end
 
 def #{key}=(comment)

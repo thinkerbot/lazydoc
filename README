@@ -19,8 +19,8 @@ Lazydoc pulls out the documentation:
   end
   
   comment = Sample::key
-  comment.value   # => "<value>"
-  comment.to_s    # => "This is the comment content.  A content string can span multiple lines..."
+  comment.value      # => "<value>"
+  comment.comment    # => "This is the comment content.  A content string can span multiple lines..."
 
 Comments support wrapping, allowing for easy presentation:
 
@@ -118,7 +118,7 @@ is reached; the comment is then stored by constant name and key.
   doc = Lazydoc::Document.new
   doc.resolve(str)
 
-  doc.to_hash {|comment| [comment.value, comment.to_s] } 
+  doc.to_hash {|c| [c.value, c.comment] } 
   # => {
   # 'Const::Name' => {
   #   'key' =>     ['value for key', 'comment for key parsed until a non-comment line'],
@@ -186,7 +186,7 @@ the behavior of RDoc).
   doc.register(9)
   doc.resolve(str)
 
-  doc.comments.collect {|comment| [comment.subject, comment.to_s] } 
+  doc.comments.collect {|c| [c.subject, c.comment] } 
   # => [
   # ['def method', 'comment lines for the method'],
   # ['def another_method', 'as in RDoc, the comment can be separated from the method']]

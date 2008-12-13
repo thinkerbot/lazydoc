@@ -539,10 +539,10 @@ module Lazydoc
       comment(fragment_sep, line_sep, strip)
     end
     
-    # Like to_s, but wraps the content to the specified number of cols
+    # Like comment, but wraps the content to the specified number of cols
     # and expands tabs to tabsize spaces.
     def wrap(cols=80, tabsize=2, line_sep="\n", fragment_sep=" ", strip=true)
-      lines = Comment.wrap(to_s(fragment_sep, "\n", strip), cols, tabsize)
+      lines = Comment.wrap(comment(fragment_sep, "\n", strip), cols, tabsize)
       line_sep ? lines.join(line_sep) : lines
     end
   
