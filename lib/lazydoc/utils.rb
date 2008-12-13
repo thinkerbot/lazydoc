@@ -157,6 +157,22 @@ module Lazydoc
       line.gsub(/(.{1,#{cols}})( +|$\r?\n?)|(.{1,#{cols}})/, "\\1\\3\n").split(/\s*?\n/)
     end
     
+    # helper method to skip to the next non-escaped instance
+    # matching the quote regexp (/'/ or /"/).
+    def skip_quote(scanner, regexp)
+      scanner.skip_until(regexp)
+      scanner.skip_until(regexp) while scanner.string[scanner.pos-2] == ?\\
+    end
+    
+    # utility method used to by resolve to find the index
+    # of a line matching a regexp line_number.
+    def match_index(regexp, lines)
+      lines.each_with_index do |line, index|
+        return index if line =~ regexp
+      end
+      nil
+    end
+    
     # utility method used by scan to categorize and yield
     # the appropriate objects to add the fragment to a
     # comment
@@ -174,13 +190,6 @@ module Lazydoc
         yield [fragment.rstrip]
         yield []
       end
-    end
-    
-    # helper method to skip to the next non-escaped instance
-    # matching the quote regexp (/'/ or /"/).
-    def skip_quote(scanner, regexp) # :nodoc:
-      scanner.skip_until(regexp)
-      scanner.skip_until(regexp) while scanner.string[scanner.pos-2] == ?\\
     end
   end
 end

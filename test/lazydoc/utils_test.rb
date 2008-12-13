@@ -111,4 +111,5 @@ class UtilsTest < Test::Unit::TestCase
   def test_wrap_resolves_tabs_using_tabsize
     assert_equal ["a    line", "that", "wraps"], Utils.wrap("a\tline that\twraps", 10, 4)
   end
+  
 end

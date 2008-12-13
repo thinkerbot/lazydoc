@@ -40,7 +40,10 @@ module Lazydoc
       when String then StringScanner.new(str)
       else raise TypeError, "can't convert #{str.class} into StringScanner or String"
       end
-
+      
+      # benchmarks indicate this is faster than a scanning
+      # approach for both long and short strings
+      self.line_number = scanner.string[0, scanner.pos].count("\n")
       self.content.clear
       while scanner.scan(/\r?\n?[ \t]*#[ \t]?(([ \t]*).*?)\r?$/)
         fragment = scanner[1]

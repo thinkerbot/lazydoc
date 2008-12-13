@@ -78,7 +78,7 @@ module Lazydoc
         when String then StringScanner.new(str)
         else raise TypeError, "can't convert #{str.class} into StringScanner or String"
         end
-
+        
         regexp = /^(.*?)::(:-|#{key})/
         while !scanner.eos?
           break if scanner.skip_until(regexp) == nil
@@ -230,7 +230,6 @@ module Lazydoc
         end
         
         # parse the comment
-        comment.line_number = nil
         comment.value = value
         comment.parse(scanner) do |line|
           if line =~ ATTRIBUTE_REGEXP

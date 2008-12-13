@@ -132,6 +132,20 @@ class AttributeTest < Test::Unit::TestCase
     end
   end
   
+  def test_parse_sets_line_number
+    scanner = StringScanner.new %Q{
+
+subject line
+# comment
+}
+    a.parse(scanner)
+    assert_equal 0, a.line_number
+
+    scanner.skip_until(/subject line/)
+    a.parse(scanner)
+    assert_equal 2, a.line_number
+  end
+    
   def test_parse_overrides_previous_content
     a.content << "overridden"
     

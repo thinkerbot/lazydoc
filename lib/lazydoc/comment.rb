@@ -292,20 +292,10 @@ module Lazydoc
     end
     
     # Self-resolves and returns comment.
-    def to_s(fragment_sep=" ", line_sep="\n", strip=true)
+    def to_s
       resolve
-      comment(fragment_sep, line_sep, strip)
+      comment
     end
     
-    private
-  
-    # utility method used to by resolve to find the index
-    # of a line matching a regexp line_number.
-    def match_index(regexp, lines) # :nodoc:
-      lines.each_with_index do |line, index|
-        return index if line =~ regexp
-      end
-      nil
-    end
   end
 end

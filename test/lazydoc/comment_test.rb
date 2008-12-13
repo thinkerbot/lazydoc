@@ -452,7 +452,7 @@ new line
   def test_to_s_resolves_self
     c.document = MockDocumentForToS.new(c)
     assert_equal [], c.content
-    assert_equal "some line.fragments", c.to_s('.', ':')
+    assert_equal "some line fragments", c.to_s
   end
 
 end

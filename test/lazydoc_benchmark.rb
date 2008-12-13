@@ -3,7 +3,8 @@ require 'lazydoc'
 require 'benchmark'
 
 class LazydocBenchmark < Test::Unit::TestCase
-
+  include Lazydoc
+  
   def test_scan_speed
     puts "test_scan_speed"
     Benchmark.bm(25) do |x|
@@ -11,28 +12,28 @@ class LazydocBenchmark < Test::Unit::TestCase
       n = 1000
       x.report("#{n}x #{str.length} chars") do 
         n.times do 
-          Lazydoc.scan(str,  'key') {|*args|}
+          Document.scan(str,  'key') {|*args|}
         end
       end
 
       str = %Q{# Name::Space::key  value} * 100
       x.report("same but matching") do 
         n.times do 
-          Lazydoc.scan(str,  'key') {|*args|}
+          Document.scan(str,  'key') {|*args|}
         end
       end
 
       str = %Q{#           ::key  value} * 100
       x.report("just ::key syntax") do 
         n.times do 
-          Lazydoc.scan(str,  'key') {|*args|}
+          Document.scan(str,  'key') {|*args|}
         end
       end
 
       str = %Q{# Name::Space:: key value} * 100
       x.report("unmatching") do 
         n.times do 
-          Lazydoc.scan(str,  'key') {|*args|}
+          Document.scan(str,  'key') {|*args|}
         end
       end
     end
@@ -41,7 +42,7 @@ class LazydocBenchmark < Test::Unit::TestCase
   def test_parse_speed
     puts "test_parse_speed"
     Benchmark.bm(25) do |x|
-      comment = %Q{
+      str = %Q{
 # comment spanning
 # multiple lines
 #   with indented
@@ -51,36 +52,20 @@ class LazydocBenchmark < Test::Unit::TestCase
 # spanning line
 
 }
-
-      str = %Q{              key value#{comment}} * 10
-      n = 100
-      x.report("#{n}x #{str.length} chars") do 
+      n = 1000
+      comment = Comment.new(7)
+      x.report("1k Comment") do 
         n.times do 
-          Lazydoc.parse(str) {|*args|}
+          comment.parse(str)
         end
       end
 
-      str = %Q{Name::Space::key  value#{comment}} * 10
-      x.report("same but matching") do 
+      attribute = Attribute.new
+      x.report("1k Attribute") do 
         n.times do 
-          Lazydoc.parse(str) {|*args|}
-        end
-      end
-
-      str = %Q{           ::key  value#{comment}} * 10
-      x.report("just ::key syntax") do 
-        n.times do 
-          Lazydoc.parse(str) {|*args|}
-        end
-      end
-
-      str = %Q{Name::Space:: key value#{comment}} * 10
-      x.report("unmatching") do 
-        n.times do 
-          Lazydoc.parse(str) {|*args|}
+          attribute.parse(str)
         end
       end
     end
   end
-
 end
