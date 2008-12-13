@@ -37,11 +37,10 @@ module Lazydoc
     end
 
     # Creates a lazy attribute accessor for the specified attribute.
-    def lazy_attr(key, comment_class=Attribute)
+    def lazy_attr(key, comment_class=Attribute, line_number=nil)
       instance_eval %Q{
-def #{key}(resolve=true)
-  Lazydoc[source_file].resolve if resolve
-  const_attrs['#{key}'] ||= #{comment_class}.new
+def #{key}
+  (const_attrs['#{key}'] ||= #{comment_class}.new(#{line_number.inspect}, Lazydoc[source_file])).resolve
 end
 
 def #{key}=(comment)

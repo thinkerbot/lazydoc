@@ -21,6 +21,134 @@ class CommentTest < Test::Unit::TestCase
     assert_equal nil, c.line_number
     assert_equal nil, c.document
   end
+
+  #
+  # trailer test
+  #
+  
+  def test_trailer_returns_a_trailing_comment_on_the_subject_line
+    c.subject = "comment # with trailer "
+    assert_equal "with trailer", c.trailer
+  end
+
+  #
+  # push test
+  #
+  
+  def test_push_documentation
+    c = Comment.new
+    c.push "some line"
+    c.push "fragments"
+    c.push ["a", "whole", "new line"]
+    
+    expected = [
+      ["some line", "fragments"], 
+      ["a", "whole", "new line"]]
+    assert_equal(expected, c.content)
+  end
+  
+  def test_push_adds_fragment_to_last_line
+    c.push "a line"
+    c.push "fragment"
+    assert_equal [["a line", "fragment"]], c.content
+  end
+
+  def test_push_adds_array_if_given
+    c.push "fragment"
+    c.push ["some", "array"]
+    assert_equal [['fragment'], ["some", "array"]], c.content
+  end
+
+  def test_push_replaces_last_array_if_last_is_empty
+    c.push ["some", "array"]
+    assert_equal [["some", "array"]], c.content
+  end
+  
+  #
+  # append test
+  #
+  
+  def test_append_documentation
+    lines = [
+      "# comment spanning multiple",
+      "# lines",
+      "#",
+      "#   indented line one",
+      "#   indented line two",
+      "#    ",
+      "not a comment line"]
+  
+    c = Comment.new
+    lines.each {|line| c.append(line) }
+  
+    expected = [
+    ['comment spanning multiple', 'lines'],
+    [''],
+    ['  indented line one'],
+    ['  indented line two'],
+    [''],
+    []]
+    assert_equal expected, c.content
+  end
+  
+  #
+  # unshift test
+  #
+  
+  def test_unshift_documentation
+    c = Comment.new
+    c.unshift "some line"
+    c.unshift "fragments"
+    c.unshift ["a", "whole", "new line"]
+    
+    expected = [
+      ["a", "whole", "new line"], 
+      ["fragments", "some line"]]
+    assert_equal(expected, c.content)
+  end
+  
+  def test_unshift_unshifts_fragment_to_first_line
+    c.unshift "a line"
+    c.unshift "fragment"
+    assert_equal [["fragment", "a line"]], c.content
+  end
+
+  def test_unshift_unshifts_array_if_given
+    c.unshift "fragment"
+    c.unshift ["some", "array"]
+    assert_equal [["some", "array"], ['fragment']], c.content
+  end
+
+  def test_unshift_replaces_first_array_if_first_is_empty
+    c.unshift ["some", "array"]
+    assert_equal [["some", "array"]], c.content
+  end
+  
+  #
+  # prepend test
+  #
+  
+  def test_prepend_documentation
+    lines = [
+      "# comment spanning multiple",
+      "# lines",
+      "#",
+      "#   indented line one",
+      "#   indented line two",
+      "#    ",
+      "not a comment line"]
+  
+    c = Comment.new
+    lines.reverse_each {|line| c.prepend(line) }
+  
+    expected = [
+    ['comment spanning multiple', 'lines'],
+    [''],
+    ['  indented line one'],
+    ['  indented line two'],
+    ['']]
+    assert_equal expected, c.content
+  end
   
   #
   # parse test
@@ -191,12 +319,111 @@ subject
   end
   
   #
-  # trailer test
+  # resolve test
   #
-  
-  def test_trailer_returns_a_trailing_comment_on_the_subject_line
-    c.subject = "comment # with trailer "
-    assert_equal "with trailer", c.trailer
+
+  class MockDocumentForResolve
+    attr_reader :resolve_called
+
+    def initialize
+      @resolve_called = false
+    end
+
+    def resolve(str=nil)
+      @resolve_called = true
+    end
+  end
+
+  def test_resolve_resolves_lazydoc
+    doc = MockDocumentForResolve.new
+    c.document = doc
+    c.resolve
+    assert doc.resolve_called
+  end
+
+  def test_resolve_does_not_raise_error_if_document_is_not_set
+    assert_equal nil, c.document
+    c.resolve
+  end
+
+  #
+  # trim test
+  #
+
+  def test_trim_removes_leading_and_trailing_empty_and_whitespace_lines
+    c.push ['']
+    c.push ["fragment"]
+    c.push ['', "\t\r  \n", ' ']
+    c.push []
+
+    assert_equal [[''],['fragment'],['', "\t\r  \n", ' '],[]], c.content
+    c.trim
+    assert_equal [['fragment']], c.content
+  end
+
+  def test_trim_ensures_lines_is_not_empty
+    c.push ['']
+    c.push ['']
+    assert_equal [[''],['']], c.content
+
+    c.trim
+    assert_equal [], c.content
+  end
+
+  def test_trim_returns_self
+    assert_equal c, c.trim
+  end
+
+  #
+  # empty? test
+  #
+
+  def test_empty_is_true_if_there_are_no_non_empty_lines_in_self
+    assert_equal [], c.content
+    assert c.empty?
+
+    c.content.push "frag"
+
+    assert !c.empty?
+  end
+
+  #
+  # comment test
+  #
+
+  def test_comment_joins_lines_with_separators
+    c.push "some line"
+    c.push "fragments"
+    c.push ["a", "whole", "new line"]
+
+    assert_equal "some line.fragments:a.whole.new line", c.comment('.', ':')
+  end
+
+  def test_comment_does_not_join_lines_when_line_sep_is_nil
+    c.push "some line"
+    c.push "fragments"
+    c.push ["a", "whole", "new line"]
+
+    assert_equal ["some line.fragments", "a.whole.new line"], c.comment('.', nil)
+  end
+
+  #
+  # wrap test
+  #
+
+  def test_wrap_wraps_to_s_to_the_specified_number_of_columns
+    c.push "some line"
+    c.push "fragments"
+    c.push ["a", "whole", "new line"]
+
+    expected = %Q{
+some line
+fragments
+a whole
+new line
+}.strip
+
+    assert_equal expected, c.wrap(10)
   end
   
   #

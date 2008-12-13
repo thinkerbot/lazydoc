@@ -1,10 +1,10 @@
 require 'lazydoc/comment'
 require 'lazydoc/method'
+require 'lazydoc/attribute'
 
 module Lazydoc
   autoload(:Attributes, 'lazydoc/attributes')
   autoload(:Arguments, 'lazydoc/arguments')
-  autoload(:Subject, 'lazydoc/subject')
   autoload(:Trailer, 'lazydoc/trailer')
   
   # A regexp matching an attribute start or end.  After a match:
@@ -199,7 +199,8 @@ module Lazydoc
     # was resolved, or false otherwise.
     def resolve(str=nil)
       return(false) if resolved
-    
+      @resolved = true
+      
       str = File.read(source_file) if str == nil
       
       scanner = case str
@@ -221,14 +222,15 @@ module Lazydoc
         # initialize the comment that will be parsed
         comment = case
         when c.respond_to?(:const_attrs)
-          c.respond_to?(key) ? c.send(key, false) : c.const_attrs[key] ||= Attribute.new
+          c.respond_to?(key) ? c.send(key) : c.const_attrs[key] ||= Attribute.new(nil, self)
         when c.kind_of?(Hash)
-          c[key] ||= Attribute.new
+          c[key] ||= Attribute.new(nil, self)
         else
           raise "cannot assign constant attributes to: #{const_name.inspect}"
         end
         
         # parse the comment
+        comment.line_number = nil
         comment.value = value
         comment.parse(scanner) do |line|
           if line =~ ATTRIBUTE_REGEXP
@@ -239,8 +241,8 @@ module Lazydoc
           end
         end
       end
-
-      @resolved = true
+      
+      true
     end
     
     # Returns a nested hash of (const_name, (key, comment)) pairs. Constants 
