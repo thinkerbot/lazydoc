@@ -191,31 +191,12 @@ subject
   end
   
   #
-  # resolve test
+  # trailer test
   #
   
-  class MockDocumentForResolve
-    attr_reader :resolve_called
-    
-    def initialize
-      @resolve_called = false
-    end
-    
-    def resolve
-      @resolve_called = true
-    end
-  end
-  
-  def test_resolve_resolves_lazydoc
-    doc = MockDocumentForResolve.new
-    c.document = doc
-    c.resolve
-    assert doc.resolve_called
-  end
-  
-  def test_resolve_does_not_raise_error_if_document_is_not_set
-    assert_equal nil, c.document
-    c.resolve
+  def test_trailer_returns_a_trailing_comment_on_the_subject_line
+    c.subject = "comment # with trailer "
+    assert_equal "with trailer", c.trailer
   end
   
   #
@@ -235,7 +216,7 @@ subject
       @c = comment
     end
     
-    def resolve
+    def resolve(str=nil)
       @c.push "some line"
       @c.push "fragments"
     end

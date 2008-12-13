@@ -11,13 +11,9 @@ module Lazydoc
     # the subject line during resolve
     attr_accessor :line_number
   
-    # A back-reference to the Document that registered self
-    attr_accessor :document
-    
     def initialize(line_number=nil, document=nil)
-      super()
+      super(document)
       @line_number = line_number
-      @document = document
     end
   
     # Builds the subject and content of self by parsing str; parse sets
@@ -108,10 +104,9 @@ module Lazydoc
       self
     end
     
-    # Resolves the document for self, if set.
-    def resolve
-      document.resolve if document
-      self
+    # Returns the comment trailing the subject.
+    def trailer
+      subject ? scan_trailer(subject) : nil
     end
     
     # Self-resolves and returns comment.

@@ -32,7 +32,7 @@ class ArgumentsTest < Test::Unit::TestCase
       @c = comment
     end
     
-    def resolve
+    def resolve(str=nil)
       @c.subject = "def method(a, b='default', *c, &d)"
     end
   end

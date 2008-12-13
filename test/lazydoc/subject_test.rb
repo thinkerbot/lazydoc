@@ -32,7 +32,7 @@ class SubjectTest < Test::Unit::TestCase
       @c = comment
     end
     
-    def resolve
+    def resolve(str=nil)
       @c.subject = "subject string"
     end
   end

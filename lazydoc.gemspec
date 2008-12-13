@@ -22,11 +22,13 @@ Gem::Specification.new do |s|
   s.files = %W{
     lib/lazydoc.rb
     lib/lazydoc/arguments.rb
+    lib/lazydoc/attribute.rb
     lib/lazydoc/attributes.rb
     lib/lazydoc/comment.rb
     lib/lazydoc/document.rb
     lib/lazydoc/method.rb
     lib/lazydoc/subject.rb
     lib/lazydoc/trailer.rb
+    lib/lazydoc/utils.rb
   }
 end

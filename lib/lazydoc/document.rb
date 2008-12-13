@@ -229,7 +229,8 @@ module Lazydoc
         end
         
         # parse the comment
-        comment.parse(scanner, value) do |line|
+        comment.value = value
+        comment.parse(scanner) do |line|
           if line =~ ATTRIBUTE_REGEXP
             # rewind to capture the next attribute unless an end is specified.
             scanner.unscan unless $4 == '-' && $3 == key && $1.to_s == const_name

@@ -3,14 +3,18 @@ require 'lazydoc/utils'
 module Lazydoc
   class Attribute
     include Utils
-
+    
+    # A back-reference to the Document that registered self
+    attr_accessor :document
+    
     # An array of comment fragments organized into lines
     attr_reader :content
 
     # The subject of the comment
     attr_accessor :subject
 
-    def initialize
+    def initialize(document=nil)
+      @document = document
       @content = []
       @subject = nil
     end
@@ -145,7 +149,7 @@ module Lazydoc
       scan(line) {|f| unshift(f) }
     end
     
-    # Parses the input string into content and sets subject.  Takes a string or
+    # Parses the input string into content.  Takes a string or
     # a StringScanner and returns self.
     #
     #   comment_string = %Q{
@@ -159,7 +163,7 @@ module Lazydoc
     #   # this line is not parsed
     #   }
     #
-    #   a = Attribute.new.parse(comment_string, "subject")
+    #   a = Attribute.new.parse(comment_string)
     #   a.content   
     #   # => [
     #   # ['comments spanning multiple', 'lines are collected'],
@@ -168,7 +172,6 @@ module Lazydoc
     #   # ['  are preserved individually'],
     #   # [''],
     #   # []]
-    #   a.subject   # => "subject"
     #
     # Parsing may be manually ended by providing a block; parse yields
     # each line fragment to the block and stops parsing when the block
@@ -178,18 +181,15 @@ module Lazydoc
     #   a.content   
     #   # => [
     #   # ['comments spanning multiple', 'lines are collected']]
-    #   a.subject   # => nil
     #
-    def parse(str, subject=nil)
+    def parse(str)
       scanner = case str
       when StringScanner then str
       when String then StringScanner.new(str)
       else raise TypeError, "can't convert #{str.class} into StringScanner or String"
       end
-      
-      self.subject = subject
+
       self.content.clear
-      
       while scanner.scan(/\r?\n?[ \t]*#[ \t]?(([ \t]*).*?)\r?$/)
         fragment = scanner[1]
         indent = scanner[2]
@@ -205,6 +205,12 @@ module Lazydoc
       
       self
     end
+    
+    # Resolves the document for self, if set.
+    def resolve(str=nil)
+      document.resolve(str) if document
+      self
+    end
   
     # Removes leading and trailing lines from content that are
     # empty or whitespace.  Returns self.
@@ -217,11 +223,6 @@ module Lazydoc
     # True if all lines in content are empty.
     def empty?
       !content.find {|line| !line.empty?}
-    end
-  
-    # Returns the comment trailing the subject.
-    def trailer
-      subject ? scan_trailer(subject) : nil
     end
     
     # Returns content as a string where line fragments are joined by
@@ -237,12 +238,7 @@ module Lazydoc
     
       line_sep ? lines.join(line_sep) : lines
     end
-    
-    # Returns subject or an empty string if subject is nil.
-    def to_s
-      subject.to_s
-    end
-    
+
     # Like comment, but wraps the content to the specified number of cols
     # and expands tabs to tabsize spaces.
     def wrap(cols=80, tabsize=2, line_sep="\n", fragment_sep=" ", strip=true)
@@ -250,5 +246,10 @@ module Lazydoc
       line_sep ? lines.join(line_sep) : lines
     end
   
+    # Returns subject or an empty string if subject is nil.
+    def to_s
+      resolve
+      subject.to_s
+    end
   end
 end

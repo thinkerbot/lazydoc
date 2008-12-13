@@ -155,7 +155,7 @@ class AttributeTest < Test::Unit::TestCase
 # this line is not parsed
 }
   
-    a = Attribute.new.parse(comment_string, "subject")
+    a = Attribute.new.parse(comment_string)
     expected = [
     ['comments spanning multiple', 'lines are collected'],
     [''],
@@ -164,14 +164,12 @@ class AttributeTest < Test::Unit::TestCase
     [''],
     []]
     assert_equal expected, a.content
-    assert_equal "subject", a.subject
 
     a = Attribute.new.parse(comment_string) {|frag| frag.strip.empty? }
     a.content   
     expected = [
     ['comments spanning multiple', 'lines are collected']]
     assert_equal expected, a.content
-    assert_equal nil, a.subject
   end
 
   # comment test will yield the string with both LF and CRLF
@@ -263,27 +261,48 @@ class AttributeTest < Test::Unit::TestCase
     end
   end
   
-  def test_parse_overrides_previous_subject_and_content
-    a.subject = "overridden"
+  def test_parse_overrides_previous_content
     a.content << "overridden"
     
-    a.parse(%Q{# comment}, "subject")
-    assert_equal "subject", a.subject
+    a.parse(%Q{# comment})
     assert_equal [["comment"]], a.content
   end
   
   def test_parse_returns_self
-    assert_equal a, a.parse("", "subject")
-  end
-  
-  def test_parse_sets_subject_as_provided
-    a.parse("", "subject")
-    assert_equal "subject", a.subject
+    assert_equal a, a.parse("")
   end
 
   def test_parse_can_handle_an_empty_or_whitespace_string_without_error
     a.parse("")
     a.parse("\n   \t \r\n \f ")
+  end
+  
+  #
+  # resolve test
+  #
+  
+  class MockDocumentForResolve
+    attr_reader :resolve_called
+    
+    def initialize
+      @resolve_called = false
+    end
+    
+    def resolve(str=nil)
+      @resolve_called = true
+    end
+  end
+  
+  def test_resolve_resolves_lazydoc
+    doc = MockDocumentForResolve.new
+    a.document = doc
+    a.resolve
+    assert doc.resolve_called
+  end
+  
+  def test_resolve_does_not_raise_error_if_document_is_not_set
+    assert_equal nil, a.document
+    a.resolve
   end
   
   #
@@ -326,16 +345,7 @@ class AttributeTest < Test::Unit::TestCase
     
     assert !a.empty?
   end
-  
-  #
-  # trailer test
-  #
-  
-  def test_trailer_returns_a_trailing_comment_on_the_subject_line
-    a.subject = "comment # with trailer "
-    assert_equal "with trailer", a.trailer
-  end
-  
+
   #
   # comment test
   #
@@ -357,18 +367,6 @@ class AttributeTest < Test::Unit::TestCase
   end
   
   #
-  # to_s test
-  #
-  
-  def test_to_s_returns_subject_to_s
-    assert_equal nil, a.subject
-    assert_equal "", a.to_s
-    
-    a.subject = "subject"
-    assert_equal "subject", a.to_s
-  end
-  
-  #
   # wrap test
   #
   
@@ -385,6 +383,34 @@ new line
 }.strip
 
     assert_equal expected, a.wrap(10)
+  end
+
+  #
+  # to_s test
+  #
+  
+  def test_to_s_returns_subject_to_s
+    assert_equal nil, a.subject
+    assert_equal "", a.to_s
+    
+    a.subject = "subject"
+    assert_equal "subject", a.to_s
+  end
+  
+  class MockDocumentForToS
+    def initialize(comment)
+      @c = comment
+    end
+    
+    def resolve(str=nil)
+      @c.subject = "subject"
+    end
+  end
+  
+  def test_to_s_resolves_self
+    a.document = MockDocumentForToS.new(a)
+    assert_equal nil, a.subject
+    assert_equal "subject", a.to_s
   end
 
 end

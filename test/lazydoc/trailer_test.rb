@@ -32,7 +32,7 @@ class TrailerTest < Test::Unit::TestCase
       @c = comment
     end
     
-    def resolve
+    def resolve(str=nil)
       @c.subject = "leader # trailer"
     end
   end
