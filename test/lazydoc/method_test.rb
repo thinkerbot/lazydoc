@@ -61,7 +61,8 @@ class MethodTest < Test::Unit::TestCase
     end
     }
   
-    m = Method.new(2).parse(sample_method)
+    m = Document.new.register(2, Method)
+    m.resolve(sample_method)
     assert_equal "method_name", m.method_name
     assert_equal ["a", "b='default'", "&c"], m.arguments
     assert_equal "trailing comment", m.trailer

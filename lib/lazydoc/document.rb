@@ -1,10 +1,10 @@
 require 'lazydoc/comment'
 require 'lazydoc/method'
-require 'lazydoc/attribute'
 
 module Lazydoc
   autoload(:Attributes, 'lazydoc/attributes')
   autoload(:Arguments, 'lazydoc/arguments')
+  autoload(:Subject, 'lazydoc/subject')
   autoload(:Trailer, 'lazydoc/trailer')
   
   # A regexp matching an attribute start or end.  After a match:
@@ -98,33 +98,46 @@ module Lazydoc
     
     # The source file for self, used during resolve
     attr_reader :source_file
+    
+    # The default constant name used when no constant name
+    # is specified for a constant attribute
+    attr_reader :default_const_name
   
     # An array of Comment objects identifying lines 
     # to be resolved
     attr_reader :comments
   
-    # The default constant name used when no constant name
-    # is specified for a constant attribute
-    attr_reader :const_lookup
+    # A nested hash of (const_name, (key, comment)) pairs tracking
+    # the constant attributes assigned to a constant name.
+    attr_reader :const_attrs
   
     # Flag indicating whether or not self has been resolved
     attr_accessor :resolved
     
-    def initialize(source_file=nil, default_const=nil)
-      @const_lookup = {}
+    def initialize(source_file=nil, default_const_name='')
+      self.source_file = source_file
+      @default_const_name = default_const_name
+      @const_attrs = {}
       @comments = []
       @resolved = false
-      self.source_file = source_file
-      self.default_const = default_const if default_const
     end
-  
+    
+    # Returns the attributes for the specified const_name.
+    def [](const_name)
+      const_name = default_const_name unless const_name && !const_name.empty?
+      const_attrs[const_name] ||= {}
+    end
+    
     # Resets self by clearing const_attrs, comments, and setting
     # resolved to false.  Generally NOT recommended as this 
     # clears any work you've done registering lines; to simply
     # allow resolve to re-scan a document, manually set
     # resolved to false.
     def reset
-      @comments.clear
+      # don't actually reset the values of const_attrs
+      # as this may unlink Attributes classes from self
+      const_attrs.values.each {|attrs| attrs.clear}
+      comments.clear
       @resolved = false
       self
     end
@@ -134,15 +147,15 @@ module Lazydoc
       @source_file = source_file == nil ? nil : File.expand_path(source_file)
     end
     
-    def default_const
-      const_lookup['']
-    end
-    
-    # Sets the default_const_name for self.  Any const_attrs assigned to 
-    # the previous default will be removed and merged with those already 
+    # Sets the default_const_name for self. Any const_attrs assigned to
+    # the previous default will be removed and merged with those already
     # assigned to the new default.
-    def default_const=(const)
-      const_lookup[''] = const
+    def default_const_name=(const_name)
+      current = self[@default_const_name]
+      self[const_name].merge!(current)
+      current.clear
+      
+      @default_const_name = const_name
     end
     
     # Register the specified line number to self.  Register
@@ -183,7 +196,7 @@ module Lazydoc
     #
     def register___(comment_class=Comment, caller_index=0)
       caller[caller_index] =~ CALLER_REGEXP
-      block = lambda do |lines|
+      block = lambda do |scanner, lines|
         n = $3.to_i
         n += 1 while lines[n] =~ /^\s*(#.*)?$/
         n
@@ -202,36 +215,22 @@ module Lazydoc
       @resolved = true
       
       str = File.read(source_file) if str == nil
-      
-      scanner = case str
-      when String then StringScanner.new(str)
-      when StringScanner then str
-      else raise TypeError, "can't convert #{str.class} into StringScanner or String"
-      end
+      lines = Utils.split_lines(str)
+      scanner = Utils.convert_to_scanner(str)
       
       unless comments.empty?
-        lines = scanner.string.split(/\r?\n/)  
         comments.each do |comment|
-          comment.parse(lines)
+          comment.parse_up(scanner, lines)
+          comment.subject = lines[comment.line_number]
         end
       end
       
       Document.scan(scanner, '[a-z_]+') do |const_name, key, value|
-        c = const_lookup[const_name] ||= lookup(const_name)
-        
-        # initialize the comment that will be parsed
-        comment = case
-        when c.respond_to?(:const_attrs)
-          c.respond_to?(key) ? c.send(key) : c.const_attrs[key] ||= Attribute.new(nil, self)
-        when c.kind_of?(Hash)
-          c[key] ||= Attribute.new(nil, self)
-        else
-          raise "cannot assign constant attributes to: #{const_name.inspect}"
-        end
-        
+        # get or initialize the comment that will be parsed
+        comment = (self[const_name][key] ||= Subject.new(nil, self))
+
         # parse the comment
-        comment.value = value
-        comment.parse(scanner) do |line|
+        comment.parse_down(scanner, lines) do |line|
           if line =~ ATTRIBUTE_REGEXP
             # rewind to capture the next attribute unless an end is specified.
             scanner.unscan unless $4 == '-' && $3 == key && $1.to_s == const_name
@@ -239,6 +238,9 @@ module Lazydoc
           else false
           end
         end
+        
+        # set the subject
+        comment.subject = value
       end
       
       true
@@ -250,27 +252,15 @@ module Lazydoc
     # be yielded to the block and the return stored in it's place.
     def to_hash
       const_hash = {}
-      const_lookup.each_pair do |const_name, const|
-        attributes = const.respond_to?(:const_attrs) ? const.const_attrs : const
+      const_attrs.each_pair do |const_name, attributes|
         next if attributes.empty?
-      
+
         const_hash[const_name] = attr_hash = {}
         attributes.each_pair do |key, comment|
           attr_hash[key] = (block_given? ? yield(comment) : comment)
         end
       end
       const_hash
-    end
-    
-    protected
-    
-    def lookup(const_name) # :nodoc:
-      return {} if const_name.empty?
-      
-      const_name.split('::').inject(Object) do |current, const|
-        return {} unless current.const_defined?(const)
-        current.const_get(const)
-      end
     end
   end
 end

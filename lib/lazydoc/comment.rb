@@ -163,13 +163,13 @@ module Lazydoc
       scan(line) {|f| unshift(f) }
     end
     
-    # Builds the subject and content of self by parsing str; parse sets
-    # the subject to the line at line_number, and parses content up
-    # from there.  Any previously set subject and content is overridden.  
-    # Returns self.
+    # Builds the content of self by parsing comments up from line_number.
+    # Whitespace lines between line_number and the preceding comment are
+    # skipped.  Previous content is overridden.  Returns self.
     #
     #   document = %Q{
     #   module Sample
+    #
     #     # this is the content of the comment
     #     # for method_one
     #     def method_one
@@ -177,78 +177,100 @@ module Lazydoc
     # 
     #     # this is the content of the comment
     #     # for method_two
+    #
     #     def method_two
     #     end
     #   end}
     #
     #   c = Comment.new 4
-    #   c.parse(document)
-    #   c.subject     # => "  def method_one"
-    #   c.content     # => [["this is the content of the comment", "for method_one"]]
+    #   c.parse_up(document)
+    #   c.comment      # => "this is the content of the comment for method_one"
     #
-    # Parse also accepts an array representing the string split along newline
-    # boundaries.
+    # The input may be a String or StringScanner and, for optimal parsing of
+    # multiple comments from the same document, may also take an array of lines
+    # representing the input split along newline boundaries.
+    #
+    # ==== Stop Block
+    # 
+    # A block may be provided to determine when to stop parsing comment
+    # content.  When the block returns true, parsing stops.
+    #
+    #   c = Comment.new 4
+    #   c.parse_up(document) {|line| line =~ /# this is/ }
+    #   c.comment      # => "for method_one"
     #
     # ==== Dynamic Line Numbers
     #
-    # The line_number used by resolve may be determined dynamically from
+    # The line_number used by parse_up may be determined dynamically from
     # the input by setting line_number to a Regexp and Proc. In the case
     # of a Regexp, the first line matching the regexp is used:
     #
     #   c = Comment.new(/def method/)
-    #   c.parse(document)
-    #   c.line_number = 4
-    #   c.subject     # => "  def method_one"
-    #   c.content     # => [["this is the content of the comment", "for method_one"]]
+    #   c.parse_up(document)
+    #   c.line_number  # => 4
+    #   c.comment      # => "this is the content of the comment for method_one"
     #
     # Procs are called with lines and are expected to return the
     # actual line number.  
     #
-    #   c = Comment.new lambda {|lines| 9 }
-    #   c.parse(document)
-    #   c.line_number = 9
-    #   c.subject     # => "  def method_two"
-    #   c.content     # => [["this is the content of the comment", "for method_two"]]
+    #   c = Comment.new lambda {|scanner, lines| 9 }
+    #   c.parse_up(document)
+    #   c.line_number  # => 9
+    #   c.comment      # => "this is the content of the comment for method_two"
     #
     # As shown in the examples, the dynamically determined line_number
     # overwrites the Regexp or Proc.
-    def parse(str)
-      lines = case str
-      when Array then str
-      else str.split(/\r?\n/)
-      end
-    
-      # resolve late-evaluation line numbers
-      n = case line_number
-      when Regexp then match_index(line_number, lines)
-      when Proc then line_number.call(lines)
-      else line_number
-      end
-     
-      # quietly exit if a line number was not found
-      return self unless n.kind_of?(Integer)
-      
-      # update negative line numbers
-      n += lines.length if n < 0
-      unless n < lines.length
-        raise RangeError, "line_number outside of lines: #{n} (#{lines.length})"
-      end
-      
-      self.line_number = n
-      self.subject = lines[n]
-      self.content.clear
-    
-      # remove whitespace lines
-      n -= 1
-      n -= 1 while n >=0 && lines[n].strip.empty?
-
-      # put together the comment
-      while n >= 0
-        break unless prepend(lines[n])
+    def parse_up(str, lines=nil)
+      parse(str, lines) do |n, lines|
+        # remove whitespace lines
         n -= 1
+        n -= 1 while n >=0 && lines[n].strip.empty?
+
+        # put together the comment
+        while n >= 0
+          line = lines[n]
+          break if block_given? && yield(line)
+          break unless prepend(line)
+          n -= 1
+        end
       end
-     
-      self
+    end
+    
+    # Like parse_up but builds the content of self by parsing comments down
+    # from line_number.  Parsing begins immediately after line_number (no
+    # whitespace lines are skipped).  Previous content is overridden.
+    # Returns self.
+    #
+    #   document = %Q{
+    #   # == Section One
+    #   # documentation for section one
+    #   #   'with' + 'indentation'
+    #   #
+    #   # == Section Two
+    #   # documentation for section two
+    #   }
+    #
+    #   c = Comment.new 1
+    #   c.parse_down(document) {|line| line =~ /Section Two/}
+    #   c.comment      # => "documentation for section one\n  'with' + 'indentation'"
+    #
+    #   c = Comment.new /Section Two/
+    #   c.parse_down(document)
+    #   c.line_number  # => 5
+    #   c.comment      # => "documentation for section two"
+    #
+    def parse_down(str, lines=nil)
+      parse(str, lines) do |n, lines|
+        # skip the subject line
+        n += 1
+        
+        # put together the comment
+        while line = lines[n]
+          break if block_given? && yield(line)
+          break unless append(line)
+          n += 1
+        end
+      end
     end
     
     # Resolves the document for self, if set.
@@ -297,5 +319,35 @@ module Lazydoc
       comment
     end
     
+    private
+    
+    # helper standardizing the shared code of parse up/down
+    def parse(str, lines) # :nodoc:
+      scanner = convert_to_scanner(str)
+      lines ||= split_lines(scanner.string)
+    
+      # resolve late-evaluation line numbers
+      n = case line_number
+      when nil then determine_line_number(scanner)
+      when Regexp then scan_index(scanner, line_number)
+      when Proc then line_number.call(scanner, lines)
+      else line_number
+      end
+     
+      # do nothing unless a line number was found
+      return self unless n.kind_of?(Integer)
+        
+      # update negative line numbers
+      n += lines.length if n < 0
+      unless n < lines.length
+        raise RangeError, "line_number outside of lines: #{n} (#{lines.length})"
+      end
+    
+      self.line_number = n
+      self.content.clear
+      yield(n, lines)
+      
+      self
+    end
   end
 end

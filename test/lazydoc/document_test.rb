@@ -19,14 +19,6 @@ module CallerRegexpTestModule
   end
 end
 
-module Const
-  module Name
-    def self.const_attrs
-      @const_attrs ||= {}
-    end
-  end
-end
-
 class DocumentTest < Test::Unit::TestCase
   include Lazydoc
   
@@ -173,7 +165,8 @@ Ignored::key value
   def test_initialize
     doc = Document.new
     assert_equal(nil, doc.source_file)
-    assert_equal({}, doc.const_lookup)
+    assert_equal('', doc.default_const_name)
+    assert_equal({}, doc.const_attrs)
     assert_equal([], doc.comments)
     assert !doc.resolved
   end
@@ -193,20 +186,33 @@ Ignored::key value
     doc.source_file = nil
     assert_nil doc.source_file
   end
-  
-  #
-  # default_const= test
-  #
 
-  def test_set_default_const_sets_the_default_const
-    assert_equal(nil, doc.default_const)
-    doc.default_const = Const::Name
-    assert_equal(Const::Name, doc.default_const)
+  #
+  # default_const_name= test
+  #
+ 
+  def test_set_default_const_name_sets_the_default_const_name
+    assert_equal('', doc.default_const_name)
+    doc.default_const_name = 'Const::Name'
+    assert_equal('Const::Name', doc.default_const_name)
   end
-  
-  def test_set_default_const_actually_sets_the_empty_string_value_in_const_lookup
-    doc.default_const = Const::Name
-    assert_equal({'' => Const::Name}, doc.const_lookup)
+ 
+  def test_set_default_const_name_clears_and_merges_existing_const_attrs_with_new
+    doc['']['one'] = 'value one'
+    doc['']['two'] = 'value two'
+    doc['New']['two'] = 'New value two'
+    doc['New']['three'] = 'New value three'
+    
+    assert_equal({
+      '' => {'one' => 'value one', 'two' => 'value two'},
+      'New' => {'two' => 'New value two', 'three' => 'New value three'},
+    }, doc.const_attrs)
+    
+    doc.default_const_name = 'New'
+    assert_equal({
+      '' => {},
+      'New' => {'one' => 'value one', 'two' => 'value two', 'three' => 'New value three'},
+    }, doc.const_attrs)
   end
   
   #
@@ -303,17 +309,6 @@ end
   #
   # resolve test
   #
-    
-  def test_resolve_parses_const_attrs_from_str_and_sets_them_to_the_constant
-    doc.resolve %Q{
-    # Const::Name::key subject line
-    # attribute comment
-    }
-    
-    const_attr = Const::Name.const_attrs['key']
-    assert_equal 'attribute comment', const_attr.comment
-    assert_equal 'subject line', const_attr.subject
-  end
 
   def test_resolve_with_various_declaration_syntaxes
     doc.resolve %Q{
@@ -356,10 +351,10 @@ end
     # ignored
     }
 
-    one = doc.const_lookup['']['one']
+    one = doc['']['one']
     assert_equal [['comment1 spanning', 'multiple lines']], one.content
    
-    two = doc.const_lookup['']['two']
+    two = doc['']['two']
     assert_equal [['comment2 spanning', 'multiple lines']], two.content
   end
 
@@ -373,7 +368,7 @@ end
     Skipped::key
     }
 
-    assert doc.const_lookup.empty?
+    assert doc.const_attrs.empty?
   end
     
   def test_resolve_sets_const_attrs_for_non_existant_constants_in_const_lookup
@@ -384,16 +379,11 @@ end
     # attribute comment
     }
 
-    const_attr = doc.const_lookup['Non::Existant']['key']
+    const_attr = doc['Non::Existant']['key']
     assert_equal 'attribute comment', const_attr.comment
     assert_equal 'subject line', const_attr.subject
   end
   
-  def test_resolve_raises_error_if_const_attrs_cannot_be_set_to_an_existing_constant
-    e = assert_raise(RuntimeError) { doc.resolve "# Object::key subject line" }
-    assert_equal "cannot assign constant attributes to: \"Object\"", e.message
-  end
-    
   def test_resolve_parses_comments_from_str
     c1 = Comment.new(6)
     c2 = Comment.new(10)
@@ -442,8 +432,8 @@ end
     assert_equal 'comment one', c.comment
     assert_equal "    subject line one", c.subject
     assert_equal 2, c.line_number
-
-    const_attr = Const::Name.const_attrs['key']
+    
+    const_attr = doc['Const::Name']['key']
     assert_equal 'attribute comment', const_attr.comment
     assert_equal 'subject line', const_attr.subject
   end

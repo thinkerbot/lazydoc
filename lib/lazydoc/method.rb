@@ -10,7 +10,8 @@ module Lazydoc
   #   end
   #   }
   #
-  #   m = Method.new(2).parse(sample_method)
+  #   m = Document.new.register(2, Method)
+  #   m.resolve(sample_method)
   #   m.method_name          # => "method_name"
   #   m.arguments            # => ["a", "b='default'", "&c"]
   #   m.trailer              # => "trailing comment"

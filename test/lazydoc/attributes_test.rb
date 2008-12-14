@@ -35,7 +35,7 @@ class AttributesTest < Test::Unit::TestCase
   def test_lazy_attr_creates_accessor_for_lazydoc_attribute
     assert LazyClass.respond_to?(:lazy)
     
-    assert_equal Lazydoc::Attribute, LazyClass.lazy.class
+    assert_equal Lazydoc::Subject, LazyClass.lazy.class
     assert_equal "subject", LazyClass.lazy.to_s
     assert_equal "comment", LazyClass.lazy.comment
   end
@@ -43,7 +43,7 @@ class AttributesTest < Test::Unit::TestCase
   def test_lazy_attr_creates_new_comment_for_unknown_attributes
     assert LazyClass.respond_to?(:unknown)
     
-    assert_equal Lazydoc::Attribute, LazyClass.unknown.class
+    assert_equal Lazydoc::Subject, LazyClass.unknown.class
     assert_equal '', LazyClass.unknown.to_s
     assert_equal '', LazyClass.unknown.comment
   end

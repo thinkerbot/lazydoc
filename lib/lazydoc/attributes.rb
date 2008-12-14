@@ -26,7 +26,7 @@ module Lazydoc
     end
     
     def const_attrs
-      @const_attrs ||= {}
+      @const_attrs ||= Lazydoc[source_file][to_s]
     end
 
     # Returns the Document for source_file
@@ -37,10 +37,12 @@ module Lazydoc
     end
 
     # Creates a lazy attribute accessor for the specified attribute.
-    def lazy_attr(key, comment_class=Attribute, line_number=nil)
+    def lazy_attr(key)
       instance_eval %Q{
 def #{key}
-  (const_attrs['#{key}'] ||= #{comment_class}.new(#{line_number.inspect}, Lazydoc[source_file])).resolve
+  document = Lazydoc[source_file]
+  document.resolve
+  const_attrs['#{key}'] ||= Subject.new(nil, document)
 end
 
 def #{key}=(comment)
@@ -49,7 +51,7 @@ end}
     end
     
     # Registers the next method.
-    def register_method___(key, comment_class=Method)
+    def register_method___(comment_class=Method)
       lazydoc(false).register___(comment_class, 1)
     end
   end

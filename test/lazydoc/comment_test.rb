@@ -151,10 +151,10 @@ class CommentTest < Test::Unit::TestCase
   end
   
   #
-  # parse test
+  # parse_up test
   #
   
-  def test_parse_documetation
+  def test_parse_up_documetation
     document = %Q{
 module Sample
   # this is the content of the comment
@@ -164,42 +164,42 @@ module Sample
 
   # this is the content of the comment
   # for method_two
+  
   def method_two
   end
 end}
   
     c = Comment.new 4
-    c.parse(document)
-    assert_equal "  def method_one", c.subject
-    assert_equal [["this is the content of the comment", "for method_one"]], c.content
+    c.parse_up(document)
+    assert_equal "this is the content of the comment for method_one", c.comment
   
+    c = Comment.new 4
+    c.parse_up(document) {|line| line =~ /# this is/ }
+    assert_equal "for method_one", c.comment
+    
     c = Comment.new(/def method/)
-    c.parse(document)
-    c.line_number = 4
-    assert_equal "  def method_one", c.subject
-    assert_equal [["this is the content of the comment", "for method_one"]], c.content
+    c.parse_up(document)
+    assert_equal 4, c.line_number
+    assert_equal "this is the content of the comment for method_one", c.comment
   
-    c = Comment.new lambda {|lines| 9 }
-    c.parse(document)
-    c.line_number = 9
-    assert_equal "  def method_two", c.subject
-    assert_equal [["this is the content of the comment", "for method_two"]], c.content
+    c = Comment.new lambda {|scanner, lines| 9 }
+    c.parse_up(document)
+    assert_equal 9, c.line_number
+    assert_equal "this is the content of the comment for method_two", c.comment
   end
   
-  def test_parse_sets_subject_line_as_specified_by_line_number_and_parses_comment_up
+  def test_parse_up_parses_content_up_from_line_number
     str = %Q{not a comment
-# comment parsed
-# up from line number
-subject
-}
+    # comment parsed
+    # up from line number
+    subject}
 
     c.line_number = 3
-    c.parse(str)
-    assert_equal "subject", c.subject
+    c.parse_up(str)
     assert_equal [["comment parsed", "up from line number"]], c.content
   end
     
-  def test_parse_accepts_an_array_of_lines
+  def test_parse_up_uses_the_array_of_lines_if_given
     lines = [
       "not a comment",
       "# comment parsed",
@@ -207,115 +207,131 @@ subject
       "subject"]
 
     c.line_number = 3
-    c.parse(lines)
-    assert_equal "subject", c.subject
+    c.parse_up("", lines)
     assert_equal [["comment parsed", "up from line number"]], c.content
   end
 
-  def test_parse_skips_up_from_subject_past_whitespace_lines_to_content
-    lines = [
-      "not a comment",
-      "# comment parsed",
-      "# up from line number",
-      "",
-      " \t     \r  ",
-      "subject"]
+  def test_parse_up_skips_up_from_line_number_past_whitespace_lines_to_content
+    str = %Q{not a comment
+    # comment parsed
+    # up from line number
 
+       \t   \r  
+    subject}
+    
     c.line_number = 5
-    c.parse(lines)
-    assert_equal "subject", c.subject
+    c.parse_up(str)
     assert_equal [["comment parsed", "up from line number"]], c.content
   end
   
-  def test_parse_parses_no_content_if_none_is_specified
-    lines = [
-      "not a comment",
-      "",
-      " \t     \r  ",
-      "subject"]
+  def test_parse_up_stops_parsing_content_if_block_returns_true
+    str = %Q{not a comment
+    # comment parsed
+    # up from line number 
+    subject}
+    
+    c.line_number = 3
+    c.parse_up(str) {|line| line =~ /# comment parsed/}
+    assert_equal [["up from line number"]], c.content
+  end
+  
+  def test_parse_up_parses_no_content_if_none_is_specified
+    str = %Q{not a comment
+
+       \t   \r  
+    subject}
 
     c.line_number = 3
-    c.parse(lines)
-    assert_equal "subject", c.subject
+    c.parse_up(str)
     assert_equal [], c.content
   end
   
-  def test_parse_returns_self
-    assert_equal c, c.parse("")
-   
-    c.line_number = 0
-    assert_equal c, c.parse("line")
-  end
-  
-  def test_parse_overrides_previous_subject_and_content
-    lines = [
-       "not a comment",
-       "# comment parsed",
-       "# up from line number",
-       "subject"]
-
-    c.line_number = 3
-    c.subject = "overridden"
-    c.content << "overridden"
+  def test_parse_up_returns_self
+    assert_equal c, c.parse_up("")
     
-    c.parse(lines)
-    assert_equal "subject", c.subject
-    assert_equal [["comment parsed", "up from line number"]], c.content
+    c.line_number = 1
+    assert_equal c, c.parse_up(%Q{# comment\nsubject})
   end
   
-  def test_parse_adds_lines_length_to_negative_line_numbers
-    lines = [
-      "not a comment",
-      "# comment parsed",
-      "# up from line number",
-      "subject"]
-
+  def test_parse_up_overrides_previous_content
+    c.content << "overridden"
+    assert_equal ["overridden"], c.content
+    
+    c.line_number = 1
+    c.parse_up %Q{# comment\nsubject}
+    assert_equal [["comment"]], c.content
+  end
+  
+  def test_parse_up_adds_lines_length_to_negative_line_numbers
+    str = %Q{not a comment
+    # comment parsed
+    # up from line number
+    subject}
+    
     c.line_number = -1
-    c.parse(lines)
+    c.parse_up(str)
     assert_equal 3, c.line_number
-    assert_equal "subject", c.subject
     assert_equal [["comment parsed", "up from line number"]], c.content
   end
   
-  def test_parse_late_evaluates_regexp_line_numbers_to_the_first_matching_line
-    lines = [
-      "not a comment",
-      "# comment parsed",
-      "# up from line number",
-      "subject"]
+  def test_parse_up_late_evaluates_regexp_line_numbers_to_the_first_matching_line
+    str = %Q{not a comment
+    # comment parsed
+    # up from line number
+    subject}
 
     c.line_number = /subject/
-    c.parse(lines)
+    c.parse_up(str)
     assert_equal 3, c.line_number
-    assert_equal "subject", c.subject
     assert_equal [["comment parsed", "up from line number"]], c.content
   end
   
-  def test_parse_late_evaluates_proc_line_numbers_by_calling_with_lines_to_get_the_actual_line_number
-    lines = [
-      "not a comment",
-      "# comment parsed",
-      "# up from line number",
-      "subject"]
+  def test_parse_up_late_evaluates_proc_line_numbers_by_calling_with_lines_to_get_the_actual_line_number
+    str = %Q{not a comment
+    # comment parsed
+    # up from line number
+    subject}
 
-    c.line_number = lambda {|l| 3 }
-    c.parse(lines)
+    c.line_number = lambda {|scanner, lines| 3 }
+    c.parse_up(str)
     assert_equal 3, c.line_number
-    assert_equal "subject", c.subject
     assert_equal [["comment parsed", "up from line number"]], c.content
   end
   
-  def test_parse_quietly_does_nothing_when_resolving_and_no_line_number_is_set
+  def test_parse_up_quietly_does_nothing_when_resolving_and_no_line_number_is_set
     assert_equal nil, c.line_number
-    c.parse("")
-    assert_equal nil, c.subject
+    c.parse_up("")
     assert_equal [], c.content
   end
   
-  def test_parse_raisess_a_range_error_when_line_number_is_out_of_lines
+  def test_parse_up_raises_a_range_error_when_line_number_is_out_of_lines
     c.line_number = 2
-    e = assert_raises(RangeError) { c.parse("") }
-    assert_equal "line_number outside of lines: 2 (0)", e.message
+    e = assert_raises(RangeError) { c.parse_up("") }
+    assert_equal "line_number outside of lines: 2 (1)", e.message
+  end
+  
+  #
+  # parse_down test
+  #
+
+  def test_parse_down_documetation
+    document = %Q{
+    # == Section One
+    # documentation for section one
+    #   'with' + 'indentation'
+    #
+    # == Section Two
+    # documentation for section two
+    }
+  
+    c = Comment.new 1
+    c.parse_down(document) {|line| line =~ /Section Two/}
+    assert_equal "documentation for section one\n  'with' + 'indentation'", c.comment
+  
+    c = Comment.new /Section Two/
+    c.parse_down(document)
+    assert_equal 5, c.line_number
+    assert_equal "documentation for section two", c.comment
   end
   
   #

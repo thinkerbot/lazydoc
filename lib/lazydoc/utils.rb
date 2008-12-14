@@ -1,8 +1,26 @@
 require 'strscan'
 
 module Lazydoc
+  
+  # A number of utility methods used by Comment, factored out for
+  # testing and re-use.
   module Utils
     module_function
+    
+    def split_lines(str)
+      (str.empty? ? [""] : str.split(/\r?\n/))
+    end
+    
+    # Converts str to a StringScanner (or returns str if it already is
+    # a StringScanner).  Raises a TypeError if str is not a String
+    # or a StringScanner.
+    def convert_to_scanner(str)
+      case str
+      when String then StringScanner.new(str)
+      when StringScanner then str
+      else raise TypeError, "can't convert #{str.class} into StringScanner"
+      end
+    end
     
     # Scan determines if and how to add a line fragment to a comment and
     # yields the appropriate fragments to the block.  Returns true if
@@ -23,7 +41,7 @@ module Lazydoc
     #
     #   c = Comment.new
     #   lines.each do |line|
-    #     break unless Comment.scan(line) do |fragment|
+    #     break unless Utils.scan(line) do |fragment|
     #       c.push(fragment)  
     #     end
     #   end
@@ -49,18 +67,16 @@ module Lazydoc
     # standard method definition, including parenthesis, comments, default
     # values, etc) into an array of strings.
     #
-    #   Method.parse_args("(a, b='default', *c, &block)")  
+    #   Utils.parse_args("(a, b='default', *c, &block)")  
     #   # => ["a", "b='default'", "*c", "&block"]
     #
     # Note the %-syntax for strings and arrays is not fully supported,
     # ie %w, %Q, %q, etc. may not parse correctly.  The same is true
     # for multiline argument strings.
+    #
+    # Accepts a String or a StringScanner.
     def scan_args(str)
-      scanner = case str
-      when StringScanner then str
-      when String then StringScanner.new(str)
-      else raise TypeError, "can't convert #{str.class} into StringScanner or String"
-      end
+      scanner = convert_to_scanner(str)
       str = scanner.string
       
       # skip whitespace and leading LPAREN
@@ -109,22 +125,18 @@ module Lazydoc
     # Scans a stripped trailing comment off the input.  Returns nil for 
     # strings without a trailing comment.
     #
-    #   Comment.scan_trailer "str with # trailer"           # => "trailer"
-    #   Comment.scan_trailer "'# in str' # trailer"         # => "trailer"
-    #   Comment.scan_trailer "str with without trailer"     # => nil
+    #   Utils.scan_trailer "str with # trailer"           # => "trailer"
+    #   Utils.scan_trailer "'# in str' # trailer"         # => "trailer"
+    #   Utils.scan_trailer "str with without trailer"     # => nil
     # 
     # Note the %Q and %q syntax for defining strings is not supported
     # within the leader and may not parse correctly:
     #
-    #   Comment.scan_trailer "%Q{# in str} # trailer"       # => "in str} # trailer"
+    #   Utils.scan_trailer "%Q{# in str} # trailer"       # => "in str} # trailer"
     #
-    # Accepts Strings or a StringScanner.
+    # Accepts a String or a StringScanner.
     def scan_trailer(str)
-      scanner = case str
-      when StringScanner then str
-      when String then StringScanner.new(str)
-      else raise TypeError, "can't convert #{str.class} into StringScanner or String"
-      end
+      scanner = convert_to_scanner(str)
 
       args = []
       brakets = braces = parens = 0
@@ -146,9 +158,9 @@ module Lazydoc
     # width.  Tabs in the line will be expanded into tabsize spaces; 
     # fragments are rstripped of whitespace.
     # 
-    #   Comment.wrap("some line that will wrap", 10)       # => ["some line", "that will", "wrap"]
-    #   Comment.wrap("     line that will wrap    ", 10)   # => ["     line", "that will", "wrap"]
-    #   Comment.wrap("                            ", 10)   # => []
+    #   Utils.wrap("some line that will wrap", 10)       # => ["some line", "that will", "wrap"]
+    #   Utils.wrap("     line that will wrap    ", 10)   # => ["     line", "that will", "wrap"]
+    #   Utils.wrap("                            ", 10)   # => []
     #
     # The wrapping algorithm is slightly modified from:
     # http://blog.macromates.com/2006/wrapping-text-with-regular-expressions/
@@ -157,20 +169,45 @@ module Lazydoc
       line.gsub(/(.{1,#{cols}})( +|$\r?\n?)|(.{1,#{cols}})/, "\\1\\3\n").split(/\s*?\n/)
     end
     
-    # helper method to skip to the next non-escaped instance
-    # matching the quote regexp (/'/ or /"/).
-    def skip_quote(scanner, regexp)
-      scanner.skip_until(regexp)
-      scanner.skip_until(regexp) while scanner.string[scanner.pos-2] == ?\\
+    # Returns the line at which scanner currently resides.  The position
+    # of scanner is not modified.
+    def determine_line_number(scanner)
+      scanner.string[0, scanner.pos].count("\n")
     end
     
-    # utility method used to by resolve to find the index
-    # of a line matching a regexp line_number.
-    def match_index(regexp, lines)
-      lines.each_with_index do |line, index|
+    # Returns the index of the line where scanner ends up after the first
+    # match to regexp (starting at position 0).  The existing position of
+    # scanner is not modified by this method.  Returns nil if the scanner
+    # cannot match regexp.
+    #
+    #   scanner = StringScanner.new %Q{zero\none\ntwo\nthree}
+    #   Utils.scan_index(scanner, /two/)         # => 2
+    #   Utils.scan_index(scanner, /no match/)    # => nil
+    #
+    def scan_index(scanner, regexp)
+      pos = scanner.pos
+      scanner.pos = 0
+      n = scanner.skip_until(regexp) ? determine_line_number(scanner) : nil
+      scanner.pos = pos
+      n
+    end
+    
+    # Returns the index of the line in lines matching regexp,
+    # or nil if no line matches regexp.
+    def match_index(lines, regexp)
+      index = 0
+      lines.each do |line|
         return index if line =~ regexp
+        index += 1
       end
       nil
+    end
+    
+    # helper method to skip to the next non-escaped instance
+    # matching the quote regexp (/'/ or /"/).
+    def skip_quote(scanner, regexp) # :nodoc:
+      scanner.skip_until(regexp)
+      scanner.skip_until(regexp) while scanner.string[scanner.pos-2] == ?\\
     end
     
     # utility method used by scan to categorize and yield

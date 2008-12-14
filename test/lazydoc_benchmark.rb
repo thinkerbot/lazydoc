@@ -54,16 +54,16 @@ class LazydocBenchmark < Test::Unit::TestCase
 }
       n = 1000
       comment = Comment.new(7)
-      x.report("1k Comment") do 
+      x.report("1k parse_up") do 
         n.times do 
-          comment.parse(str)
+          comment.parse_up(str)
         end
       end
 
-      attribute = Attribute.new
-      x.report("1k Attribute") do 
+      attribute = Comment.new(0)
+      x.report("1k parse_down") do 
         n.times do 
-          attribute.parse(str)
+          attribute.parse_down(str)
         end
       end
     end
