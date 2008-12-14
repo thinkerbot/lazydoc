@@ -402,19 +402,6 @@ end}
   end
 
   #
-  # empty? test
-  #
-
-  def test_empty_is_true_if_there_are_no_non_empty_lines_in_self
-    assert_equal [], c.content
-    assert c.empty?
-
-    c.content.push "frag"
-
-    assert !c.empty?
-  end
-
-  #
   # comment test
   #
 
@@ -451,6 +438,20 @@ new line
 }.strip
 
     assert_equal expected, c.wrap(10)
+  end
+  
+  #
+  # empty? test
+  #
+
+  def test_empty_is_true_to_s_is_empty
+    assert c.to_s.empty?
+    assert c.empty?
+    
+    c.push "frag"
+    
+    assert !c.to_s.empty?
+    assert !c.empty?
   end
   
   #

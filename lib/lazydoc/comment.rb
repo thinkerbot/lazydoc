@@ -286,11 +286,6 @@ module Lazydoc
       content.pop   while !content.empty? && (content[-1].empty? || content[-1].join.strip.empty?)
       self
     end
-  
-    # True if all lines in content are empty.
-    def empty?
-      !content.find {|line| !line.empty?}
-    end
     
     # Returns content as a string where line fragments are joined by
     # fragment_sep and lines are joined by line_sep. 
@@ -311,6 +306,11 @@ module Lazydoc
     def wrap(cols=80, tabsize=2, line_sep="\n", fragment_sep=" ", strip=true)
       lines = super(comment(fragment_sep, "\n", strip), cols, tabsize)
       line_sep ? lines.join(line_sep) : lines
+    end
+    
+    # True if to_s is empty.
+    def empty?
+      to_s.empty?
     end
     
     # Self-resolves and returns comment.
