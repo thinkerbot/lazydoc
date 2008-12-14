@@ -62,7 +62,8 @@ module Lazydoc
   # following the bang line.
   def usage(path, cols=80)
     scanner = StringScanner.new(File.read(path))
-    scanner.scan(/^#!.*?$/)
-    Attribute.new.parse(scanner).wrap(cols, 2).strip
+    scanner.scan(/#!.*?\r?\n/)
+    scanner.scan(/\s*#/m)
+    Comment.new.parse_down(scanner, nil, false).wrap(cols, 2).strip
   end
 end

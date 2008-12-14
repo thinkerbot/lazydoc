@@ -81,4 +81,47 @@ RegisterCaller.method
     assert_equal "RegisterCaller.method", c.subject
     assert_equal "this is the line that gets registered", c.to_s
   end
+  
+  #
+  # usage test
+  #
+  
+  def test_usage_parses_first_comment_down_in_str_and_formats_in_cols
+    tempfile = Tempfile.new('usage_test')
+    tempfile << %q{# this is the usage
+# formatted correctly.
+
+# not part of the usage string
+}
+    tempfile.close
+    
+    assert_equal "this is the usage formatted\ncorrectly.", Lazydoc.usage(tempfile.path, 30)
+  end
+  
+  def test_usage_skips_bang_line
+    tempfile = Tempfile.new('usage_test')
+    tempfile << %q{#! bang line
+# this is the usage
+# formatted correctly.
+
+# not part of the usage string
+}
+    tempfile.close
+
+    assert_equal "this is the usage formatted\ncorrectly.", Lazydoc.usage(tempfile.path, 30)
+  end
+  
+  def test_usage_skips_whitespace_to_first_comment
+    tempfile = Tempfile.new('usage_test')
+    tempfile << %q{
+
+# this is the usage
+# formatted correctly.
+
+# not part of the usage string
+}
+    tempfile.close
+
+    assert_equal "this is the usage formatted\ncorrectly.", Lazydoc.usage(tempfile.path, 30)
+  end
 end

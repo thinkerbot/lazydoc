@@ -230,7 +230,10 @@ module Lazydoc
       Document.scan(scanner, '[a-z_]+') do |const_name, key, value|
         # get or initialize the comment that will be parsed
         comment = (self[const_name][key] ||= Subject.new(nil, self))
-
+        
+        # skip non-comment constant attributes
+        next unless comment.kind_of?(Comment)
+        
         # parse the comment
         comment.parse_down(scanner, lines) do |line|
           if line =~ ATTRIBUTE_REGEXP

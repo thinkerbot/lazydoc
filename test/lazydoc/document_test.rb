@@ -310,7 +310,7 @@ end
   # resolve test
   #
 
-  def test_resolve_with_various_declaration_syntaxes
+  def test_resolve_constant_attributes_with_various_declaration_syntaxes
     doc.resolve %Q{
     # Name::Space::one value1
     # :startdoc:Name::Space::two value2
@@ -357,7 +357,31 @@ end
     two = doc['']['two']
     assert_equal [['comment2 spanning', 'multiple lines']], two.content
   end
+  
+  def test_resolve_parses_existing_const_attrs
+    const_attr = Subject.new
+    doc['Existing']['key'] = const_attr
+    
+    doc.resolve %Q{
+    # Existing::key subject line
+    # attribute comment
+    }
 
+    assert_equal 'attribute comment', const_attr.comment
+    assert_equal 'subject line', const_attr.subject
+  end
+
+  def test_resolve_preserves_non_Comment_constant_attributes
+    doc['Existing']['key'] = ""
+    
+    doc.resolve %Q{
+    # Existing::key subject line
+    # attribute comment
+    }
+
+    assert_equal "", doc['Existing']['key']
+  end
+  
   def test_resolve_ignores_non_word_keys
     doc.resolve %Q{
     # Skipped::Key
@@ -369,19 +393,6 @@ end
     }
 
     assert doc.const_attrs.empty?
-  end
-    
-  def test_resolve_sets_const_attrs_for_non_existant_constants_in_const_lookup
-    assert !Object.const_defined?(:Non)
-    
-    doc.resolve %Q{
-    # Non::Existant::key subject line
-    # attribute comment
-    }
-
-    const_attr = doc['Non::Existant']['key']
-    assert_equal 'attribute comment', const_attr.comment
-    assert_equal 'subject line', const_attr.subject
   end
   
   def test_resolve_parses_comments_from_str
