@@ -300,8 +300,19 @@ end}
   
   def test_parse_up_quietly_does_nothing_when_resolving_and_no_line_number_is_set
     assert_equal nil, c.line_number
-    c.parse_up("")
+    c.parse_up("str")
     assert_equal [], c.content
+  end
+  
+  def test_parse_up_raises_error_when_no_dynamic_line_number_is_resolved
+    block = lambda {|scanner, lines| nil }
+    c.line_number = block
+    e = assert_raise(RuntimeError) { c.parse_up("") }
+    assert_equal "invalid dynamic line number: #{block.inspect}", e.message
+
+    c.line_number = /non-matching/
+    e = assert_raise(RuntimeError) { c.parse_up("") }
+    assert_equal "invalid dynamic line number: /non-matching/", e.message
   end
   
   def test_parse_up_raises_a_range_error_when_line_number_is_out_of_lines
@@ -328,7 +339,7 @@ end}
     c.parse_down(document) {|line| line =~ /Section Two/}
     assert_equal "documentation for section one\n  'with' + 'indentation'", c.comment
   
-    c = Comment.new /Section Two/
+    c = Comment.new(/Section Two/)
     c.parse_down(document)
     assert_equal 5, c.line_number
     assert_equal "documentation for section two", c.comment

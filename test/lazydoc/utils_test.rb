@@ -141,7 +141,7 @@ class UtilsTest < Test::Unit::TestCase
     scanner = StringScanner.new %Q{zero\none\ntwo\nthree}
     assert_equal 0, determine_line_number(scanner)
     
-    scanner.skip_until /tw/
+    scanner.skip_until(/tw/)
     assert_equal 2, determine_line_number(scanner)
   end
   

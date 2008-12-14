@@ -221,7 +221,9 @@ module Lazydoc
       unless comments.empty?
         comments.each do |comment|
           comment.parse_up(scanner, lines)
-          comment.subject = lines[comment.line_number]
+          
+          n = comment.line_number
+          comment.subject = n.kind_of?(Integer) ? lines[n] : nil
         end
       end
       

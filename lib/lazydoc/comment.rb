@@ -335,7 +335,9 @@ module Lazydoc
       end
      
       # do nothing unless a line number was found
-      return self unless n.kind_of?(Integer)
+      unless n.kind_of?(Integer)
+        raise "invalid dynamic line number: #{line_number.inspect}"
+      end
         
       # update negative line numbers
       n += lines.length if n < 0
