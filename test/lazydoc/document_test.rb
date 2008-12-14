@@ -258,6 +258,23 @@ end
     assert_equal "this is the register_method_name comment", m.to_s
   end
   
+  def test_register_method_without_arguments_or_comments
+    tempfile = Tempfile.new('register_method_test')
+    tempfile << %Q{
+def process
+end
+}
+    tempfile.close
+
+    doc = Document.new(tempfile.path)
+    m = doc.register_method(:process)
+    doc.resolve
+
+    assert_equal "process", m.method_name
+    assert_equal [""], m.arguments
+    assert_equal "", m.to_s
+  end
+    
   # 
   # register___ test
   #

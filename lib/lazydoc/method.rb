@@ -28,7 +28,7 @@ module Lazydoc
       #   m !~ "def some_other_method"            # => true
       #
       def method_regexp(method_name)
-        /^\s*def\s+#{method_name}(\W|$)/
+        /^\s*def\s+#{method_name}(?=\W|$)/
       end
     end
     
