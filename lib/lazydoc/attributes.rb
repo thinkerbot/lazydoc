@@ -82,7 +82,7 @@ module Lazydoc
     # Lazily registers the added method if marked for lazy registration.
     def method_added(sym)
       if args = registered_methods[sym]
-        const_attrs[sym] = Lazydoc.register_caller(*args)
+        const_attrs[sym] ||= Lazydoc.register_caller(*args)
       end
       
       super

@@ -139,19 +139,45 @@ class AttributesTest < Test::Unit::TestCase
     extend Lazydoc::Attributes
 
     lazy_register :lazy
+    lazy_register :delayed
     
     # comment
     def lazy
     end
+    
+    lazy_register :conflict
+    const_attrs[:conflict] = "preset string"
+    
+    # not registered
+    def conflict
+    end
   end
   
-  def test_lazy_register
-    m = LazyRegisterClass.const_attrs[:lazy]
-    m.resolve
+  class LazyRegisterClass
+    # delayed comment
+    def delayed
+    end
+  end
+  
+  def test_lazy_register_registers_methods_as_they_are_defined
+    LazyRegisterClass.lazydoc.resolve
     
+    m = LazyRegisterClass.const_attrs[:lazy]
+
     assert_equal Lazydoc::Method, m.class
     assert_equal "lazy", m.method_name
     assert_equal "comment", m.comment
+    
+    m = LazyRegisterClass.const_attrs[:delayed]
+
+    assert_equal Lazydoc::Method, m.class
+    assert_equal "delayed", m.method_name
+    assert_equal "delayed comment", m.comment
+  end
+  
+  def test_lazy_register_does_not_overwrite_existing_const_attrs
+    LazyRegisterClass.lazydoc.resolve
+    assert_equal "preset string", LazyRegisterClass.const_attrs[:conflict]
   end
   
   class LazyRegisterSubClass < LazyRegisterClass
@@ -168,5 +194,4 @@ class AttributesTest < Test::Unit::TestCase
     assert_equal "lazy", m.method_name
     assert_equal "subclass comment", m.comment
   end
-  
 end
