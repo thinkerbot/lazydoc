@@ -54,10 +54,12 @@ end}
     end
     
     def method_added(sym)
-      if comment_class = registered_methods[sym]
-        caller[0] =~ CALLER_REGEXP
-        document = Lazydoc[$1]
-        const_attrs[sym] = document.register_method(sym, comment_class)
+      ancestors.each do |parent|
+        break unless parent.respond_to?(:registered_methods)
+        
+        if comment_class = parent.registered_methods[sym]
+          const_attrs[sym] = Lazydoc.register_caller(comment_class, 3)
+        end
       end
       
       super
@@ -67,12 +69,12 @@ end}
       registered_methods[method_name.to_sym] = comment_class
       instance_eval %Q{
 def #{key}
-  comment = const_attrs[:#{key}]
+  comment = const_attrs[:#{method_name}]
   comment.kind_of?(Comment) ? comment.resolve : comment
 end
 
 def #{key}=(comment)
-  const_attrs[:#{key}] = comment
+  const_attrs[:#{method_name}] = comment
 end}
     end
     

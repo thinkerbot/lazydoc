@@ -74,4 +74,18 @@ class AttributesTest < Test::Unit::TestCase
     assert_equal "comment", LazyRegisterClass.lazy.comment
   end
   
+  class LazyRegisterSubClass < LazyRegisterClass
+    # inherited comment
+    def lazy
+    end
+  end
+  
+  def test_lazy_register_methods_are_inherited
+    assert LazyRegisterSubClass.respond_to?(:lazy)
+    
+    assert_equal Lazydoc::Method, LazyRegisterSubClass.lazy.class
+    assert_equal "lazy", LazyRegisterSubClass.lazy.method_name
+    assert_equal "inherited comment", LazyRegisterSubClass.lazy.comment
+  end
+  
 end
