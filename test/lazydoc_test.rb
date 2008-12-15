@@ -57,11 +57,6 @@ class LazydocTest < Test::Unit::TestCase
     assert_equal [doc], Lazydoc.registry
   end
   
-  def test_register_file_expands_path_relative_to_dir_string
-    doc = Lazydoc.register_file('path/to/file', nil, '/root')
-    assert_equal '/root/path/to/file', doc.source_file
-  end
-  
   def test_register_file_returns_document_in_registry_for_source_file
     path = File.expand_path('/path/to/file')
     doc = Lazydoc::Document.new(path)
@@ -91,9 +86,12 @@ class LazydocTest < Test::Unit::TestCase
   end
 
   def test_get_initializes_new_document_if_necessary
-    assert !Lazydoc.registry.find {|doc| doc.source_file == '/path/for/non_existant_doc'}
+    assert Lazydoc.registry.empty?
     doc = Lazydoc['/path/for/non_existant_doc']
-    assert Lazydoc.registry.include?(doc)
+    
+    assert_equal [doc], Lazydoc.registry
+    assert_equal File.expand_path('/path/for/non_existant_doc'), doc.source_file
+    assert_equal nil, doc.default_const_name
   end
   
   #
@@ -120,6 +118,25 @@ c = Sample.method
   #
   # usage test
   #
+  
+  def test_usage_documentation
+    tempfile = Tempfile.new('usage_test')
+    tempfile << %q{#!/usr/bin/env ruby
+# This is your basic hello world
+# script:
+#
+#   % ruby hello_world.rb
+
+puts 'hello world'
+}
+    tempfile.close
+
+    expected = %Q{
+This is your basic hello world script:
+
+  % ruby hello_world.rb}
+    assert_equal expected, "\n" + Lazydoc.usage(tempfile.path)  
+  end
   
   def test_usage_parses_first_comment_down_in_str_and_formats_in_cols
     tempfile = Tempfile.new('usage_test')

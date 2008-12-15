@@ -253,33 +253,24 @@ Ignored::key value
   #
   
   def test_register___documentation
-    eval %Q{
-class RegisterDocumentationTest < Test::Unit::TestCase
-  def test_register___documentation
     lazydoc = Document.new(__FILE__)
   
-    lazydoc.register___
-    # this is the comment
-    # that is registered
-    def method(a,b,c)
-    end
+    c = lazydoc.register___
+# this is the comment
+# that is registered
+def method(a,b,c)
+end
   
     lazydoc.resolve
-    m = lazydoc.comments[0]
-    assert_equal "def method(a,b,c)", m.subject
-    assert_equal "this is the comment that is registered", m.to_s
-  end
-end
-}
+    
+    assert_equal "def method(a,b,c)", c.subject
+    assert_equal "this is the comment that is registered", c.comment
   end
   
-  def test_register___skips_whitespace_before_and_after_comment
-    eval %Q{
-class RegisterSkipWhitespaceTest < Test::Unit::TestCase
   def test_register___skips_whitespace_before_and_after_comment
     lazydoc = Document.new(__FILE__)
 
-    lazydoc.register___
+    m = lazydoc.register___
 
 # this is a comment surrounded
 # by whitespace
@@ -288,12 +279,9 @@ def skip_method(a,b,c)
 end
 
     lazydoc.resolve
-    m = lazydoc.comments[0]
+    
     assert_equal "def skip_method(a,b,c)", m.subject
     assert_equal "this is a comment surrounded by whitespace", m.to_s
-  end
-end
-}
   end
 
   #
@@ -450,18 +438,53 @@ end
   end
 
   def test_resolve_does_nothing_if_already_resolved
-    c1 = Comment.new(1)
-    c2 = Comment.new(1)
-    doc.comments << c1
+    c = doc.register(1)
     assert doc.resolve("# comment one\nsubject line one")
-
-    doc.comments << c2
     assert !doc.resolve("# comment two\nsubject line two")
 
-    assert_equal 'comment one', c1.comment
-    assert_equal "subject line one", c1.subject
+    assert_equal 'comment one', c.comment
+    assert_equal "subject line one", c.subject
+  end
+  
+  def test_resolve_will_re_resolve_if_force_is_specified
+    c = doc.register(1)
+    assert doc.resolve("# comment one\nsubject line one")
+    assert doc.resolve("# comment two\nsubject line two", true)
 
-    assert_equal [], c2.content
-    assert_equal nil, c2.subject
+    assert_equal 'comment two', c.comment
+    assert_equal "subject line two", c.subject
+  end
+  
+  #
+  # summarize test
+  #
+  
+  def test_summarize_returns_a_hash_of_const_attrs_assigned_to_self
+    c1 = Comment.new(1, doc)
+    c2 = Comment.new(2, doc)
+    c3 = Comment.new
+    
+    Document['Const::Name']['c1'] = c1
+    Document['']['c2'] = c2
+    Document['']['c3'] = c3
+    
+    assert_equal({
+      'Const::Name' => {'c1' => c1},
+      '' => {'c2' => c2},
+    }, doc.summarize)
+  end
+  
+  def test_summarize_collects_block_results_instead_of_comments
+    c1 = Comment.new(1, doc)
+    c2 = Comment.new(2, doc)
+
+    Document['Const::Name']['c1'] = c1
+    Document['']['c2'] = c2
+    
+    expected = {
+      'Const::Name' => {'c1' => 1},
+      '' => {'c2' => 2},
+    }
+    assert_equal(expected, doc.summarize {|comment| comment.line_number })
   end
 end

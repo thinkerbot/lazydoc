@@ -356,7 +356,7 @@ end}
       @resolve_called = false
     end
 
-    def resolve(str=nil)
+    def resolve(*args)
       @resolve_called = true
     end
   end
@@ -471,7 +471,7 @@ new line
       @c = comment
     end
     
-    def resolve(str=nil)
+    def resolve(*args)
       @c.push "some line"
       @c.push "fragments"
     end

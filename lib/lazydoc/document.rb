@@ -27,18 +27,22 @@ module Lazydoc
   # Note that line numbers in caller start at 1, not 0.
   CALLER_REGEXP = /^(([A-z]:)?[^:]+):(\d+)/
   
-  # A Document tracks constant attributes and code comments for a particular
-  # source file.  Documents may be assigned a default_const_name to be used
+  # A Document resolves constant attributes and code comments for a particular
+  # source file.  Documents may be assigned a default_const_name to be used 
   # when a constant attribute does not specify a constant.
   #
-  #   # KeyWithConst::key value a
+  #   # Const::Name::key value a
   #   # ::key value b
   #
-  #   doc = Document.new(__FILE__, 'DefaultConst')
+  #   doc = Document.new(__FILE__, 'Default')
   #   doc.resolve
-  #   doc['KeyWithConst']['key'].value      # => 'value a'
-  #   doc['DefaultConst']['key'].value      # => 'value b'
   #
+  #   Document['Const::Name']['key'].value      # => 'value a'
+  #   Document['Default']['key'].value          # => 'value b'
+  #
+  # As shown in the example, constant attibutes for all documents are cached in
+  # the class-level const_attrs hash and are normally consumed through Document 
+  # itself.
   class Document
     class << self
       
@@ -48,7 +52,7 @@ module Lazydoc
         @const_attrs ||= {}
       end
       
-      # Returns the hash of constant attributes for const_name stored
+      # Returns the hash of (key, comment) pairs for const_name stored
       # in const_attrs.  If no such hash exists, one will be created.
       def [](const_name)
         const_attrs[const_name] ||= {}
@@ -116,8 +120,7 @@ module Lazydoc
     # is specified for a constant attribute
     attr_reader :default_const_name
   
-    # An array of Comment objects identifying lines 
-    # to be resolved
+    # An array of Comment objects registered to self
     attr_reader :comments
   
     # Flag indicating whether or not self has been resolved
@@ -130,30 +133,27 @@ module Lazydoc
       @resolved = false
     end
     
-    # Returns the attributes for the specified const_name.
+    # Returns the attributes for the specified const_name.  If an empty 
+    # const_name ('') is specified, and a default_const_name is set,
+    # the default_const_name will be used instead.
     def [](const_name)
       const_name = default_const_name if default_const_name && const_name == ''
       Document[const_name]
     end
   
-    # Sets the source file for self.  Expands the source file path if necessary.
+    # Expands and sets the source file for self.
     def source_file=(source_file)
       @source_file = source_file == nil ? nil : File.expand_path(source_file)
     end
     
-    # Register the specified line number to self.  Register
-    # may take an integer or a regexp for late-evaluation.
-    # See Comment#resolve for more details.
+    # Registers the specified line number to self.  Register may take an
+    # integer or a regexp for dynamic evaluation. See Comment#resolve for
+    # more details.
     # 
-    # Returns a comment_class instance corresponding to the line.
+    # Returns the newly registered comment.
     def register(line_number, comment_class=Comment)
-      comment = comments.find {|c| c.class == comment_class && c.line_number == line_number }
-    
-      if comment == nil
-        comment = comment_class.new(line_number, self)
-        comments << comment
-      end
-    
+      comment = comment_class.new(line_number, self)
+      comments << comment
       comment
     end
     
@@ -161,16 +161,16 @@ module Lazydoc
     #
     #   lazydoc = Document.new(__FILE__)
     #
-    #   lazydoc.register___
+    #   c = lazydoc.register___
     #   # this is the comment
     #   # that is registered
     #   def method(a,b,c)
     #   end
     #
     #   lazydoc.resolve
-    #   m = lazydoc.comments[0]
-    #   m.subject      # => "def method(a,b,c)"
-    #   m.to_s         # => "this is the comment that is registered"
+    #
+    #   c.subject      # => "def method(a,b,c)"
+    #   c.comment      # => "this is the comment that is registered"
     #
     def register___(comment_class=Comment, caller_index=0)
       caller[caller_index] =~ CALLER_REGEXP
@@ -182,28 +182,19 @@ module Lazydoc
       register(block, comment_class)
     end
       
-    # Scans str for constant attributes and adds them to to self.  Code
-    # comments are also resolved against str.  If no str is specified,
-    # the contents of source_file are used instead.
+    # Scans str for constant attributes and adds them to Document.const_attrs.
+    # Comments registered with self are also resolved against str.  If no str
+    # is specified, the contents of source_file are used instead.
     #
-    # Resolve does nothing if resolved == true.  Returns true if str
-    # was resolved, or false otherwise.
-    def resolve(str=nil)
-      return(false) if resolved
+    # Resolve does nothing if resolved == true, unless force is also specified.
+    # Returns true if str was resolved, or false otherwise.
+    def resolve(str=nil, force=false)
+      return false if resolved && !force
       @resolved = true
       
       str = File.read(source_file) if str == nil
       lines = Utils.split_lines(str)
       scanner = Utils.convert_to_scanner(str)
-      
-      unless comments.empty?
-        comments.each do |comment|
-          comment.parse_up(scanner, lines)
-          
-          n = comment.line_number
-          comment.subject = n.kind_of?(Integer) ? lines[n] : nil
-        end
-      end
       
       Document.scan(scanner, '[a-z_]+') do |const_name, key, value|
         # get or initialize the comment that will be parsed
@@ -226,13 +217,21 @@ module Lazydoc
         comment.subject = value
       end
       
+      # resolve registered comments
+      comments.each do |comment|
+        comment.parse_up(scanner, lines)
+        
+        n = comment.line_number
+        comment.subject = n.kind_of?(Integer) ? lines[n] : nil
+      end
+      
       true
     end
     
-    # Returns a nested hash of (const_name, (key, comment)) pairs. Constants 
-    # that have no attributes assigned to them are omitted.  A block may
-    # be provided to collect values from the comments; each comment will
-    # be yielded to the block and the return stored in it's place.
+    # Summarizes constant attributes registered to self by collecting them
+    # into a nested hash of (const_name, (key, comment)) pairs.  A block 
+    # may be provided to collect values from the comments; each comment is
+    # yielded to the block and the return stored in it's place.
     def summarize
       const_hash = {}
       Document.const_attrs.each_pair do |const_name, attributes|

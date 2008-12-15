@@ -274,8 +274,8 @@ module Lazydoc
     end
     
     # Resolves the document for self, if set.
-    def resolve(str=nil)
-      document.resolve(str) if document
+    def resolve(str=nil, force=false)
+      document.resolve(str, force) if document
       self
     end
   
