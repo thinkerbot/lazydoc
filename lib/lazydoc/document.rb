@@ -157,11 +157,6 @@ module Lazydoc
       comment
     end
     
-    # Registers a regexp matching the first definition of method_name.
-    def register_method(method_name, comment_class=Method)
-      register(Method.method_regexp(method_name), comment_class)
-    end
-    
     # Registers the next comment.
     #
     #   lazydoc = Document.new(__FILE__)

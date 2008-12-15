@@ -18,19 +18,6 @@ module Lazydoc
   #   m.to_s                 # => "This is the comment body"
   #
   class Method < Comment
-    class << self
-      
-      # Generates a regexp matching a standard definition of method_name.
-      #
-      #   m = Method.method_regexp("method")
-      #   m =~ "def method"                       # => true
-      #   m =~ "def method(with, args, &block)"   # => true
-      #   m !~ "def some_other_method"            # => true
-      #
-      def method_regexp(method_name)
-        /^\s*def\s+#{method_name}(?=\W|$)/
-      end
-    end
     
     # Matches a standard method definition.  After the match:
     #

@@ -78,8 +78,8 @@ def #{key}=(comment)
 end}
     end
     
-    # Registers the next method.
-    def register_method___(comment_class=Method)
+    # Registers the next comment (by default as a Method).
+    def register___(comment_class=Method)
       lazydoc(false).register___(comment_class, 1)
     end
   end

@@ -40,17 +40,6 @@ class MethodTest < Test::Unit::TestCase
   end
   
   #
-  # method_regexp test
-  #
-  
-  def test_method_regexp_documentation
-    m = Method.method_regexp("method")
-    assert m =~ "def method"
-    assert m =~ "def method(with, args, &block)"
-    assert m !~ "def some_other_method" 
-  end
-  
-  #
   # documentation test
   #
   

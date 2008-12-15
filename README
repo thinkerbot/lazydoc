@@ -39,7 +39,7 @@ of code, particularly method definitions:
   class Helpers
     extend Lazydoc::Attributes
     
-    register_method___
+    register___
     # method_one is registered by the helper
     def method_one(a, b='str', &c)
     end

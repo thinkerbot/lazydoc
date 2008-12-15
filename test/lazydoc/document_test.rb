@@ -248,44 +248,6 @@ Ignored::key value
     assert_equal doc, c.document
   end
   
-  #
-  # register_method test
-  #
-  
-  def test_register_method_registers_the_next_method_matching_method_name
-    tempfile = Tempfile.new('register_method_test')
-    tempfile << %Q{
-# this is the register_method_name comment
-def register_method_name(a,b,c)
-end  
-}
-    tempfile.close
-
-    doc = Document.new(tempfile.path)
-    m = doc.register_method(:register_method_name)
-    doc.resolve
-
-    assert_equal "register_method_name", m.method_name
-    assert_equal "this is the register_method_name comment", m.to_s
-  end
-  
-  def test_register_method_without_arguments_or_comments
-    tempfile = Tempfile.new('register_method_test')
-    tempfile << %Q{
-def process
-end
-}
-    tempfile.close
-
-    doc = Document.new(tempfile.path)
-    m = doc.register_method(:process)
-    doc.resolve
-
-    assert_equal "process", m.method_name
-    assert_equal [""], m.arguments
-    assert_equal "", m.to_s
-  end
-    
   # 
   # register___ test
   #
