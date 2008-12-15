@@ -113,7 +113,7 @@ module Lazydoc
     
     # The default constant name used when no constant name
     # is specified for a constant attribute
-    attr_reader :default_const_name
+    attr_accessor :default_const_name
   
     # An array of Comment objects identifying lines 
     # to be resolved

@@ -1,5 +1,5 @@
 require 'test/unit'
-require 'lazydoc/attributes'
+require 'lazydoc'
 
 # ConstName::key value
 class ConstName
@@ -19,9 +19,13 @@ class AttributesTest < Test::Unit::TestCase
     assert_equal 'value', ConstName::key.subject
   end
 
-  # AttributesTest::LazyClass::lazy subject
+  #
+  # lazy_attr test
+  #
+  
+  # AttributesTest::LazyAttrClass::lazy subject
   # comment
-  class LazyClass
+  class LazyAttrClass
     class << self
       include Lazydoc::Attributes
     end
@@ -33,18 +37,41 @@ class AttributesTest < Test::Unit::TestCase
   end
   
   def test_lazy_attr_creates_accessor_for_lazydoc_attribute
-    assert LazyClass.respond_to?(:lazy)
+    assert LazyAttrClass.respond_to?(:lazy)
     
-    assert_equal Lazydoc::Subject, LazyClass.lazy.class
-    assert_equal "subject", LazyClass.lazy.to_s
-    assert_equal "comment", LazyClass.lazy.comment
+    assert_equal Lazydoc::Subject, LazyAttrClass.lazy.class
+    assert_equal "subject", LazyAttrClass.lazy.to_s
+    assert_equal "comment", LazyAttrClass.lazy.comment
   end
   
   def test_lazy_attr_creates_new_comment_for_unknown_attributes
-    assert LazyClass.respond_to?(:unknown)
+    assert LazyAttrClass.respond_to?(:unknown)
     
-    assert_equal Lazydoc::Subject, LazyClass.unknown.class
-    assert_equal '', LazyClass.unknown.to_s
-    assert_equal '', LazyClass.unknown.comment
+    assert_equal Lazydoc::Subject, LazyAttrClass.unknown.class
+    assert_equal '', LazyAttrClass.unknown.to_s
+    assert_equal '', LazyAttrClass.unknown.comment
   end
+  
+  #
+  # lazy_register test
+  #
+  
+  class LazyRegisterClass
+    extend Lazydoc::Attributes
+
+    lazy_register :lazy
+    
+    # comment
+    def lazy
+    end
+  end
+  
+  def test_lazy_register
+    assert LazyRegisterClass.respond_to?(:lazy)
+    
+    assert_equal Lazydoc::Method, LazyRegisterClass.lazy.class
+    assert_equal "lazy", LazyRegisterClass.lazy.method_name
+    assert_equal "comment", LazyRegisterClass.lazy.comment
+  end
+  
 end

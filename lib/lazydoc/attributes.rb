@@ -28,6 +28,10 @@ module Lazydoc
     def const_attrs
       @const_attrs ||= Lazydoc.attributes(to_s)
     end
+    
+    def registered_methods
+      @registered_methods ||= {}
+    end
 
     # Returns the Document for source_file
     def lazydoc(resolve=true)
@@ -40,13 +44,35 @@ module Lazydoc
     def lazy_attr(key)
       instance_eval %Q{
 def #{key}
-  document = Lazydoc[source_file]
-  document.resolve
-  const_attrs['#{key}'] ||= Subject.new(nil, document)
+  comment = const_attrs['#{key}'] ||= Subject.new(nil, Lazydoc[source_file])
+  comment.kind_of?(Comment) ? comment.resolve : comment
 end
 
 def #{key}=(comment)
   const_attrs['#{key}'] = comment
+end}
+    end
+    
+    def method_added(sym)
+      if comment_class = registered_methods[sym]
+        caller[0] =~ CALLER_REGEXP
+        document = Lazydoc[$1]
+        const_attrs[sym] = document.register_method(sym, comment_class)
+      end
+      
+      super
+    end
+    
+    def lazy_register(key, method_name=key, comment_class=Method)
+      registered_methods[method_name.to_sym] = comment_class
+      instance_eval %Q{
+def #{key}
+  comment = const_attrs[:#{key}]
+  comment.kind_of?(Comment) ? comment.resolve : comment
+end
+
+def #{key}=(comment)
+  const_attrs[:#{key}] = comment
 end}
     end
     
