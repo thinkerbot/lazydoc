@@ -26,7 +26,7 @@ class DocumentTest < Test::Unit::TestCase
 
   def setup
     @doc = Document.new
-    Lazydoc.const_attrs.clear
+    Document.const_attrs.clear
   end
   
   #
@@ -89,6 +89,26 @@ class DocumentTest < Test::Unit::TestCase
     assert_equal 10, result[3].to_i
     
     assert_nil CallerRegexpTestModule.call(:fail, r)
+  end
+  
+  #
+  # const_attrs test
+  #
+
+  def test_const_attrs
+    assert_equal Hash, Document.const_attrs.class
+  end
+  
+  #
+  # [] test
+  #
+  
+  def test_AGET_returns_a_hash_in_const_attrs_for_the_specified_const_name
+    assert Document.const_attrs.empty?
+    
+    hash = Document['Const::Name']
+    assert_equal({}, hash)
+    assert_equal hash, Document.const_attrs['Const::Name']
   end
 
   #
@@ -166,11 +186,30 @@ Ignored::key value
   def test_initialize
     doc = Document.new
     assert_equal(nil, doc.source_file)
-    assert_equal('', doc.default_const_name)
+    assert_equal(nil, doc.default_const_name)
     assert_equal([], doc.comments)
     assert !doc.resolved
   end
-
+  
+  #
+  # [] test
+  #
+  
+  def test_AGET_returns_the_const_attrs_for_the_specified_const_name
+    Document['']['key'] = ''
+    Document['Const::Name']['key'] = 'value'
+    
+    assert_equal({'key' => ''}, doc[''])
+    assert_equal({'key' => 'value'}, doc['Const::Name'])
+  end
+  
+  def test_AGET_uses_default_const_name_if_set_and_const_name_is_empty
+    Document['Const::Name']['key'] = 'value'
+    doc = Document.new(nil, 'Const::Name')
+    
+    assert_equal({'key' => 'value'}, doc[''])
+  end
+  
   #
   # source_file= test
   #
@@ -318,7 +357,7 @@ end
     'three' => 'value3', 
     'novalue' => ''}
     actual = {}
-    Lazydoc.const_attrs['Name::Space'].each_pair {|key, comment| actual[key] = comment.subject}
+    Document['Name::Space'].each_pair {|key, comment| actual[key] = comment.subject}
     assert_equal expected, actual
     
     expected = {
@@ -328,7 +367,7 @@ end
     'seven' => 'value7',
     'novalue' => ''}
     actual = {}
-    Lazydoc.const_attrs[''].each_pair {|key, comment| actual[key] = comment.subject}
+    Document[''].each_pair {|key, comment| actual[key] = comment.subject}
     assert_equal expected, actual
   end
 
@@ -385,7 +424,7 @@ end
     Skipped::key
     }
 
-    assert Lazydoc.const_attrs.empty?
+    assert Document.const_attrs.empty?
   end
   
   def test_resolve_parses_comments_from_str

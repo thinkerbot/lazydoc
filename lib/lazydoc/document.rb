@@ -27,18 +27,6 @@ module Lazydoc
   # Note that line numbers in caller start at 1, not 0.
   CALLER_REGEXP = /^(([A-z]:)?[^:]+):(\d+)/
   
-  module_function
-  
-  # A nested hash of (const_name, (key, comment)) pairs tracking
-  # the constant attributes assigned to a constant name.
-  def const_attrs
-    @const_attrs ||= {}
-  end
-  
-  def attributes(const_name)
-    const_attrs[const_name] ||= {}
-  end
-  
   # A Document tracks constant attributes and code comments for a particular
   # source file.  Documents may be assigned a default_const_name to be used
   # when a constant attribute does not specify a constant.
@@ -53,6 +41,19 @@ module Lazydoc
   #
   class Document
     class << self
+      
+      # A nested hash of (const_name, (key, comment)) pairs tracking
+      # the constant attributes assigned to a constant name.
+      def const_attrs
+        @const_attrs ||= {}
+      end
+      
+      # Returns the hash of constant attributes for const_name stored
+      # in const_attrs.  If no such hash exists, one will be created.
+      def [](const_name)
+        const_attrs[const_name] ||= {}
+      end
+      
       # Scans the string or StringScanner for attributes matching the key
       # (keys may be patterns; they are incorporated into a regexp).
       # Regions delimited by the stop and start keys <tt>:::-</tt> and 
@@ -113,7 +114,7 @@ module Lazydoc
     
     # The default constant name used when no constant name
     # is specified for a constant attribute
-    attr_accessor :default_const_name
+    attr_reader :default_const_name
   
     # An array of Comment objects identifying lines 
     # to be resolved
@@ -122,7 +123,7 @@ module Lazydoc
     # Flag indicating whether or not self has been resolved
     attr_accessor :resolved
     
-    def initialize(source_file=nil, default_const_name='')
+    def initialize(source_file=nil, default_const_name=nil)
       self.source_file = source_file
       @default_const_name = default_const_name
       @comments = []
@@ -131,19 +132,8 @@ module Lazydoc
     
     # Returns the attributes for the specified const_name.
     def [](const_name)
-      const_name = default_const_name if const_name == ''
-      Lazydoc.attributes(const_name)
-    end
-    
-    # Resets self by clearing const_attrs, comments, and setting
-    # resolved to false.  Generally NOT recommended as this 
-    # clears any work you've done registering lines; to simply
-    # allow resolve to re-scan a document, manually set
-    # resolved to false.
-    def reset
-      comments.clear
-      @resolved = false
-      self
+      const_name = default_const_name if default_const_name && const_name == ''
+      Document[const_name]
     end
   
     # Sets the source file for self.  Expands the source file path if necessary.
@@ -250,7 +240,7 @@ module Lazydoc
     # be yielded to the block and the return stored in it's place.
     def summarize
       const_hash = {}
-      Lazydoc.const_attrs.each_pair do |const_name, attributes|
+      Document.const_attrs.each_pair do |const_name, attributes|
         next if attributes.empty?
 
         const_hash[const_name] = attr_hash = {}

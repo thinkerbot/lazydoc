@@ -3,6 +3,10 @@ require 'lazydoc'
 
 class LazydocTest < Test::Unit::TestCase
  
+  def setup
+    Lazydoc.registry.clear
+  end
+  
   #
   # syntax test
   #
@@ -35,9 +39,47 @@ class LazydocTest < Test::Unit::TestCase
   #
 
   def test_registry
-    assert Lazydoc.registry.kind_of?(Array)
+    assert_equal Array, Lazydoc.registry.class
+  end
+  
+  #
+  # register_file test
+  #
+  
+  def test_register_file_adds_a_document_for_the_specified_path
+    assert Lazydoc.registry.empty?
+    
+    path = File.expand_path('/path/to/file')
+    doc = Lazydoc.register_file(path)
+    
+    assert_equal path, doc.source_file
+    assert_equal nil, doc.default_const_name
+    assert_equal [doc], Lazydoc.registry
+  end
+  
+  def test_register_file_expands_path_relative_to_dir_string
+    doc = Lazydoc.register_file('path/to/file', nil, '/root')
+    assert_equal '/root/path/to/file', doc.source_file
+  end
+  
+  def test_register_file_returns_document_in_registry_for_source_file
+    path = File.expand_path('/path/to/file')
+    doc = Lazydoc::Document.new(path)
+    Lazydoc.registry << doc
+    assert_equal doc, Lazydoc.register_file(path)
+  end
+  
+  def test_register_file_initializes_document_with_default_const_name_if_provided
+    doc = Lazydoc.register_file('/path/to/file', 'Default::ConstName')
+    assert_equal 'Default::ConstName', doc.default_const_name
   end
 
+  def test_register_file_raises_error_for_an_inconsistent_default_const_name
+    doc = Lazydoc.register_file('/path/to/file', 'Default::ConstName')
+    e = assert_raise(ArgumentError) { Lazydoc.register_file('/path/to/file', 'New::ConstName') }
+    assert_equal "inconsistent default_const_name specified for #{File.expand_path('/path/to/file')}: \"Default::ConstName\" != \"New::ConstName\"", e.message
+  end
+  
   #
   # [] test
   #
@@ -58,28 +100,21 @@ class LazydocTest < Test::Unit::TestCase
   # register_caller test
   #
   
-  def test_register_caller_registers_caller
-    tempfile = Tempfile.new('register___test')
-    tempfile << %Q{
-module RegisterCaller
-  module_function
-  def method
-    Lazydoc.register_caller
+  module Sample
+    module_function
+    def method
+      Lazydoc.register_caller
+    end
   end
-end
+  
+  def test_register_caller_documentation
 
 # this is the line that gets registered
-RegisterCaller.method
-}
-    tempfile.close
-    load(tempfile.path)
+c = Sample.method
 
-    lazydoc = Lazydoc[tempfile.path]
-    lazydoc.resolve
-    
-    c = lazydoc.comments[0]
-    assert_equal "RegisterCaller.method", c.subject
-    assert_equal "this is the line that gets registered", c.to_s
+    c.resolve
+    assert_equal "c = Sample.method", c.subject
+    assert_equal "this is the line that gets registered", c.comment
   end
   
   #

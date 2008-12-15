@@ -26,7 +26,7 @@ module Lazydoc
     end
     
     def const_attrs
-      @const_attrs ||= Lazydoc.attributes(to_s)
+      @const_attrs ||= Document[to_s]
     end
     
     def registered_methods

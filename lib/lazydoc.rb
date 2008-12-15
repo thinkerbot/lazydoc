@@ -11,16 +11,32 @@ module Lazydoc
   # Returns the Document in registry for the specified source file.
   # If no such Document exists, one will be created for it.
   def [](source_file)
-    source_file = File.expand_path(source_file.to_s)
+    register_file(source_file)
+  end
+  
+  # Generates a Document the source_file and default_const_name and adds it to
+  # registry, or returns the document already registered to source_file.  An
+  # error is raised if you try to re-register a source_file with a non-nil,
+  # inconsistent default_const_name.  The source_file is always expanded using
+  # File.expand_path; a non-default expansion directory may be specified using
+  # dir_string.
+  def register_file(source_file, default_const_name=nil, dir_string=nil)
+    source_file = File.expand_path(source_file.to_s, dir_string)
     lazydoc = registry.find {|doc| doc.source_file == source_file }
-    if lazydoc == nil
-      lazydoc = Document.new(source_file)
+    
+    unless lazydoc
+      lazydoc = Document.new(source_file, default_const_name)
       registry << lazydoc
     end
+    
+    if default_const_name && lazydoc.default_const_name != default_const_name
+      raise ArgumentError, "inconsistent default_const_name specified for #{source_file}: #{lazydoc.default_const_name.inspect} != #{default_const_name.inspect}"
+    end
+    
     lazydoc
   end
 
-  # Register the line number to the Document for source_file and
+  # Register the line number to the document for source_file and
   # returns the corresponding comment.
   def register(source_file, line_number, comment_class=Comment)
     Lazydoc[source_file].register(line_number, comment_class)
@@ -29,7 +45,7 @@ module Lazydoc
   # Registers the method at the specified index in the call stack to
   # the file where the method was called.  Using the default index of
   # 1, register_caller registers the caller of the method where 
-  # register_caller is called.  For instance:
+  # register_caller is called (whew!).  For instance:
   #
   #   module Sample
   #     module_function
@@ -39,23 +55,15 @@ module Lazydoc
   #   end
   #
   #   # this is the line that gets registered
-  #   Sample.method
+  #   c = Sample.method
+  #
+  #   c.resolve
+  #   c.subject   # => "c = Sample.method"
+  #   c.comment   # => "this is the line that gets registered"
   #
   def register_caller(comment_class=Comment, caller_index=1)
     caller[caller_index] =~ CALLER_REGEXP
     Lazydoc[$1].register($3.to_i - 1, comment_class)
-  end
-  
-  # Scans the specified file for attributes keyed by key and stores 
-  # the resulting comments in the Document for source_file. Returns 
-  # the Document.
-  def scan_doc(source_file, key)
-    document = nil
-    Document.scan(File.read(source_file), key) do |const_name, attr_key, comment|
-      document = self[source_file] unless document
-      document[const_name][attr_key] = comment
-    end
-    document
   end
   
   # Parses the usage for a file, ie the first comment in the file 

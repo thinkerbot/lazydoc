@@ -13,7 +13,7 @@ end
 class ReadmeTest < Test::Unit::TestCase
   
   def setup
-    Lazydoc.const_attrs.clear
+    Lazydoc::Document.const_attrs.clear
   end
   
   #
