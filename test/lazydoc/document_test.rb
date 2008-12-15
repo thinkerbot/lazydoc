@@ -26,6 +26,7 @@ class DocumentTest < Test::Unit::TestCase
 
   def setup
     @doc = Document.new
+    Lazydoc.const_attrs.clear
   end
   
   #
@@ -166,7 +167,6 @@ Ignored::key value
     doc = Document.new
     assert_equal(nil, doc.source_file)
     assert_equal('', doc.default_const_name)
-    assert_equal({}, doc.const_attrs)
     assert_equal([], doc.comments)
     assert !doc.resolved
   end
@@ -185,34 +185,6 @@ Ignored::key value
     doc.source_file = "path/to/file.txt"
     doc.source_file = nil
     assert_nil doc.source_file
-  end
-
-  #
-  # default_const_name= test
-  #
- 
-  def test_set_default_const_name_sets_the_default_const_name
-    assert_equal('', doc.default_const_name)
-    doc.default_const_name = 'Const::Name'
-    assert_equal('Const::Name', doc.default_const_name)
-  end
- 
-  def test_set_default_const_name_clears_and_merges_existing_const_attrs_with_new
-    doc['']['one'] = 'value one'
-    doc['']['two'] = 'value two'
-    doc['New']['two'] = 'New value two'
-    doc['New']['three'] = 'New value three'
-    
-    assert_equal({
-      '' => {'one' => 'value one', 'two' => 'value two'},
-      'New' => {'two' => 'New value two', 'three' => 'New value three'},
-    }, doc.const_attrs)
-    
-    doc.default_const_name = 'New'
-    assert_equal({
-      '' => {},
-      'New' => {'one' => 'value one', 'two' => 'value two', 'three' => 'New value three'},
-    }, doc.const_attrs)
   end
   
   #
@@ -340,20 +312,24 @@ end
     # ::novalue
     }
 
-   expected = {
-      "Name::Space" => {
-        'one' => 'value1', 
-        'two' => 'value2', 
-        'three' => 'value3', 
-        'novalue' => ''},
-      "" => {
-        'four' => 'value4', 
-        'five' => 'value5', 
-        'six' => 'value6', 
-        'seven' => 'value7',
-        'novalue' => ''}
-    }
-    assert_equal expected, doc.to_hash {|comment| comment.subject}
+    expected = {
+    'one' => 'value1', 
+    'two' => 'value2', 
+    'three' => 'value3', 
+    'novalue' => ''}
+    actual = {}
+    Lazydoc.const_attrs['Name::Space'].each_pair {|key, comment| actual[key] = comment.subject}
+    assert_equal expected, actual
+    
+    expected = {
+    'four' => 'value4', 
+    'five' => 'value5', 
+    'six' => 'value6', 
+    'seven' => 'value7',
+    'novalue' => ''}
+    actual = {}
+    Lazydoc.const_attrs[''].each_pair {|key, comment| actual[key] = comment.subject}
+    assert_equal expected, actual
   end
 
   def test_resolve_stops_reading_comment_at_new_declaration_or_end_declaration
@@ -409,7 +385,7 @@ end
     Skipped::key
     }
 
-    assert doc.const_attrs.empty?
+    assert Lazydoc.const_attrs.empty?
   end
   
   def test_resolve_parses_comments_from_str

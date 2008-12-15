@@ -27,6 +27,18 @@ module Lazydoc
   # Note that line numbers in caller start at 1, not 0.
   CALLER_REGEXP = /^(([A-z]:)?[^:]+):(\d+)/
   
+  module_function
+  
+  # A nested hash of (const_name, (key, comment)) pairs tracking
+  # the constant attributes assigned to a constant name.
+  def const_attrs
+    @const_attrs ||= {}
+  end
+  
+  def attributes(const_name)
+    const_attrs[const_name] ||= {}
+  end
+  
   # A Document tracks constant attributes and code comments for a particular
   # source file.  Documents may be assigned a default_const_name to be used
   # when a constant attribute does not specify a constant.
@@ -107,25 +119,20 @@ module Lazydoc
     # to be resolved
     attr_reader :comments
   
-    # A nested hash of (const_name, (key, comment)) pairs tracking
-    # the constant attributes assigned to a constant name.
-    attr_reader :const_attrs
-  
     # Flag indicating whether or not self has been resolved
     attr_accessor :resolved
     
     def initialize(source_file=nil, default_const_name='')
       self.source_file = source_file
       @default_const_name = default_const_name
-      @const_attrs = {}
       @comments = []
       @resolved = false
     end
     
     # Returns the attributes for the specified const_name.
     def [](const_name)
-      const_name = default_const_name unless const_name && !const_name.empty?
-      const_attrs[const_name] ||= {}
+      const_name = default_const_name if const_name == ''
+      Lazydoc.attributes(const_name)
     end
     
     # Resets self by clearing const_attrs, comments, and setting
@@ -134,9 +141,6 @@ module Lazydoc
     # allow resolve to re-scan a document, manually set
     # resolved to false.
     def reset
-      # don't actually reset the values of const_attrs
-      # as this may unlink Attributes classes from self
-      const_attrs.values.each {|attrs| attrs.clear}
       comments.clear
       @resolved = false
       self
@@ -145,17 +149,6 @@ module Lazydoc
     # Sets the source file for self.  Expands the source file path if necessary.
     def source_file=(source_file)
       @source_file = source_file == nil ? nil : File.expand_path(source_file)
-    end
-    
-    # Sets the default_const_name for self. Any const_attrs assigned to
-    # the previous default will be removed and merged with those already
-    # assigned to the new default.
-    def default_const_name=(const_name)
-      current = self[@default_const_name]
-      self[const_name].merge!(current)
-      current.clear
-      
-      @default_const_name = const_name
     end
     
     # Register the specified line number to self.  Register
@@ -255,13 +248,14 @@ module Lazydoc
     # that have no attributes assigned to them are omitted.  A block may
     # be provided to collect values from the comments; each comment will
     # be yielded to the block and the return stored in it's place.
-    def to_hash
+    def summarize
       const_hash = {}
-      const_attrs.each_pair do |const_name, attributes|
+      Lazydoc.const_attrs.each_pair do |const_name, attributes|
         next if attributes.empty?
 
         const_hash[const_name] = attr_hash = {}
         attributes.each_pair do |key, comment|
+          next unless comment.document == self
           attr_hash[key] = (block_given? ? yield(comment) : comment)
         end
       end

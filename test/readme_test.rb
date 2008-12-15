@@ -12,6 +12,10 @@ end
 
 class ReadmeTest < Test::Unit::TestCase
   
+  def setup
+    Lazydoc.const_attrs.clear
+  end
+  
   #
   # documentation test
   #
@@ -89,7 +93,7 @@ Helpers.new.method_two
      'key' =>     ['value for key', 'comment for key parsed until a non-comment line'],
      'another' => ['value for another', 'comment for another parsed to an end key']
     }}
-    assert_equal expected, doc.to_hash {|c| [c.value, c.comment] } 
+    assert_equal expected, doc.summarize {|c| [c.value, c.comment] } 
 
     str = %Q{
 Const::Name::not_parsed
@@ -102,7 +106,7 @@ Const::Name::not_parsed
 
     doc = Lazydoc::Document.new
     doc.resolve(str)
-    assert_equal({'Const::Name' => {'parsed' => 'value'}}, doc.to_hash {|c| c.value })
+    assert_equal({'Const::Name' => {'parsed' => 'value'}}, doc.summarize {|c| c.value })
   end
   
   def test_startdoc_syntax
@@ -127,7 +131,7 @@ Const::Name::not_parsed
      'one' => ['hidden in RDoc', '* This line is visible in RDoc.'],
      'two' => ['', 'You can hide attribute comments like this.']
     }}
-    assert_equal(expected, doc.to_hash {|c| [c.subject, c.comment] })
+    assert_equal(expected, doc.summarize {|c| [c.subject, c.comment] })
   end
   
   def test_code_comments_usage_documentation

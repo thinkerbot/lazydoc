@@ -118,7 +118,7 @@ is reached; the comment is then stored by constant name and key.
   doc = Lazydoc::Document.new
   doc.resolve(str)
 
-  doc.to_hash {|c| [c.value, c.comment] } 
+  doc.summarize {|c| [c.value, c.comment] } 
   # => {
   # 'Const::Name' => {
   #   'key' =>     ['value for key', 'comment for key parsed until a non-comment line'],
@@ -139,7 +139,7 @@ attribute parsing for a section of documentation, use start/stop keys:
 
   doc = Lazydoc::Document.new
   doc.resolve(str)
-  doc.to_hash {|comment| comment.value }   # => {'Const::Name' => {'parsed' => 'value'}}
+  doc.summarize {|comment| comment.value }   # => {'Const::Name' => {'parsed' => 'value'}}
 
 To hide attributes from RDoc, make use of the RDoc <tt>:startdoc:</tt> 
 document modifier like this (note that spaces are added to prevent RDoc

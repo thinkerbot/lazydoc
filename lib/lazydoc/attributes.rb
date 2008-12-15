@@ -26,7 +26,7 @@ module Lazydoc
     end
     
     def const_attrs
-      @const_attrs ||= Lazydoc[source_file][to_s]
+      @const_attrs ||= Lazydoc.attributes(to_s)
     end
 
     # Returns the Document for source_file
