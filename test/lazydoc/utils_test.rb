@@ -67,8 +67,8 @@ class UtilsTest < Test::Unit::TestCase
   end
   
   def test_scan_args
-    assert_equal [""], scan_args("")
-    assert_equal [""], scan_args("# commet, with, comma")
+    assert_equal [], scan_args("")
+    assert_equal [], scan_args("# commet, with, comma")
     
     assert_equal ["a"], scan_args("a")
     assert_equal ["a"], scan_args("a # commet, with, comma")

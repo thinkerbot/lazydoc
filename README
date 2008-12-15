@@ -39,7 +39,7 @@ of code, particularly method definitions:
   class Helpers
     extend Lazydoc::Attributes
     
-    register___
+    const_attrs[:one] = register___
     # method_one is registered by the helper
     def method_one(a, b='str', &c)
     end
@@ -49,24 +49,39 @@ of code, particularly method definitions:
     def method_two
       Lazydoc.register_caller
     end
+    
+    lazy_attr(:three, :method_three)
+    lazy_register(:method_three)
   end
   
   # *THIS* is the line that gets
   # registered by method_two
-  Helpers.new.method_two
+  Helpers.const_attrs[:two] = Helpers.new.method_two
+  
+  class Helpers
+    # notice method three is registered in
+    # a totally separate place... 
+    def method_three
+    end
+  end
   
   doc = Helpers.lazydoc
   doc.resolve
   
-  comment = doc.comments[0]
-  comment.method_name        # => "method_one"
-  comment.arguments          # => ["a", "b='str'", "&c"]
-  comment.to_s               # => "method_one is registered by the helper"
+  one = Helpers.const_attrs[:one]
+  one.method_name        # => "method_one"
+  one.arguments          # => ["a", "b='str'", "&c"]
+  one.to_s               # => "method_one is registered by the helper"
   
-  comment = doc.comments[1]
-  comment.subject            # => "Helpers.new.method_two"
-  comment.to_s               # => "*THIS* is the line that gets registered by method_two"
+  two = Helpers.const_attrs[:two]
+  two.subject            # => "two = Helpers.new.method_two"
+  two.to_s               # => "*THIS* is the line that gets registered by method_two"
 
+  three = Helpers.three
+  three.method_name      # => "method_three"
+  three.arguments        # => []
+  three.to_s             # => "notice method three is registered in a totally separate place..."
+  
 Check out these links for development, and bug tracking.
 
 * Website[http://tap.rubyforge.org/lazydoc]
@@ -77,8 +92,8 @@ Check out these links for development, and bug tracking.
 == Usage
 
 Lazydoc can find two types of documentation, constant attributes and code
-comments, which correspond to lazy attributes and the lines of code 
-registered by helpers, respectively.
+comments.  The distinction is primarily how they are found and parsed; both
+are represented by Comment objects.
 
 === Constant Attributes
 
@@ -97,8 +112,8 @@ While these are not:
   # Const::Name::k@y
 
 Lazydoc parses a Lazydoc::Comment for each constant attribute by using the 
-remainder of the line as a value (ie subject) and scanning down for content.
-Scanning continues until a non-comment line, an end key, or a new attribute
+remainder of the line as a value (ie subject) and parsing down for content.
+Parsing continues until a non-comment line, an end key, or a new attribute
 is reached; the comment is then stored by constant name and key.
 
   str = %Q{
@@ -195,7 +210,7 @@ Comments may be registered to specific line numbers, or with a Proc or
 Regexp that will determine the line number during resolution.  In the case
 of a Regexp, the first matching line is used; Procs receive an array of
 lines and should return the line number that should be used.  See 
-{Comment#resolve}[link://classes/Lazydoc/Comment.html] for more details.
+{Comment#parse_up}[link://classes/Lazydoc/Comment.html] for more details.
 
 == Installation
 

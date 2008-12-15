@@ -39,7 +39,7 @@ multiple lines...
 class Helpers
   extend Lazydoc::Attributes
 
-  register___
+  const_attrs[:one] = register___
   # method_one is registered by the helper
   def method_one(a, b='str', &c)
   end
@@ -49,26 +49,41 @@ class Helpers
   def method_two
     Lazydoc.register_caller
   end
+
+  lazy_attr(:three, :method_three)
+  lazy_register(:method_three)
 end
 
 # *THIS* is the line that gets
 # registered by method_two
-Helpers.new.method_two
+Helpers.const_attrs[:two] = Helpers.new.method_two
+
+class Helpers
+  # notice method three is registered in
+  # a totally separate place... 
+  def method_three
+  end
+end
 }
     tempfile.close
     load(tempfile.path)
     
     doc = Helpers.lazydoc
     doc.resolve
+
+    one = Helpers.const_attrs[:one]
+    assert_equal "method_one", one.method_name
+    assert_equal ["a", "b='str'", "&c"], one.arguments
+    assert_equal "method_one is registered by the helper", one.to_s
     
-    comment = doc.comments[0]
-    assert_equal "method_one", comment.method_name
-    assert_equal ["a", "b='str'", "&c"], comment.arguments
-    assert_equal "method_one is registered by the helper", comment.to_s
-    
-    comment = doc.comments[1]
-    assert_equal "Helpers.new.method_two", comment.subject
-    assert_equal "*THIS* is the line that gets registered by method_two", comment.to_s
+    two = Helpers.const_attrs[:two]
+    assert_equal "Helpers.const_attrs[:two] = Helpers.new.method_two", two.subject
+    assert_equal "*THIS* is the line that gets registered by method_two", two.to_s
+
+    three = Helpers.three
+    assert_equal "method_three", three.method_name
+    assert_equal [], three.arguments
+    assert_equal "notice method three is registered in a totally separate place...", three.to_s
   end
   
   def test_constant_attributes_usage_documentation

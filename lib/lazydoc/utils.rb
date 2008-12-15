@@ -117,7 +117,7 @@ module Lazydoc
       # then the end position is determined by the 
       # scanner, otherwise take all that remains
       pos = broke ? scanner.pos-1 : str.length
-      args << str[start, pos-start].strip
+      args << str[start, pos-start].strip unless pos == start
 
       args
     end
