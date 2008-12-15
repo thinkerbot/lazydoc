@@ -4,21 +4,79 @@ require 'lazydoc'
 # ConstName::key value
 class ConstName
   extend Lazydoc::Attributes
-  
+
   lazy_attr :key
 end
 
 class AttributesTest < Test::Unit::TestCase
 
   #
-  # attributes test
+  # documentation test
   #
+  
+  class Sample
+    extend Lazydoc::Attributes
+
+    const_attrs[:method_one] = register___
+    # this is the method one comment
+    def method_one
+    end
+  end
+  
+  class Paired
+    extend Lazydoc::Attributes
+
+    lazy_attr(:one, :method_one)
+    lazy_attr(:two, :method_two)
+    lazy_register(:method_two)
+
+    const_attrs[:method_one] = register___
+    # this is the manually-registered method one comment
+    def method_one
+    end
+
+    # this is the lazyily-registered method two comment
+    def method_two
+    end
+  end
   
   def test_attributes_documentation
     assert_equal __FILE__, ConstName.source_file
     assert_equal 'value', ConstName::key.subject
-  end
+    
+    Sample.lazydoc.resolve
+    assert_equal "this is the method one comment", Sample.const_attrs[:method_one].comment
 
+    Paired.lazydoc.resolve
+    assert_equal "this is the manually-registered method one comment", Paired.one.comment
+    assert_equal "this is the lazyily-registered method two comment", Paired.two.comment 
+  end
+  
+  #
+  # const_attrs test
+  #
+  
+  class ConstAttrClass
+    extend Lazydoc::Attributes
+  end
+  
+  def test_const_attrs_returns_the_const_attrs_for_the_extended_class
+    assert_equal Lazydoc::Document['AttributesTest::ConstAttrClass'], ConstAttrClass.const_attrs
+  end
+  
+  #
+  # lazydoc test
+  #
+  
+  class SourceFileClass
+    extend Lazydoc::Attributes
+  end
+  
+  def test_lazydoc_returns_Document_registered_to_source_file
+    assert_equal __FILE__, SourceFileClass.source_file
+    assert_equal Lazydoc[__FILE__], SourceFileClass.lazydoc
+  end
+  
   #
   # lazy_attr test
   #
@@ -33,19 +91,40 @@ class AttributesTest < Test::Unit::TestCase
     self.source_file = __FILE__
     
     lazy_attr :lazy
+    lazy_attr :alt, 'lazy'
+    lazy_attr :no_writer, 'lazy', false
     lazy_attr :unknown
   end
   
   def test_lazy_attr_creates_accessor_for_lazydoc_attribute
     assert LazyAttrClass.respond_to?(:lazy)
+    assert LazyAttrClass.respond_to?(:lazy=)
     
-    assert_equal Lazydoc::Subject, LazyAttrClass.lazy.class
+    assert LazyAttrClass.lazy != nil
+    assert_equal LazyAttrClass.const_attrs['lazy'], LazyAttrClass.lazy
+  end
+  
+  def test_lazy_attr_auto_resolves
+    LazyAttrClass.const_attrs.clear
+    LazyAttrClass.lazydoc.resolved = false
+    
     assert_equal "subject", LazyAttrClass.lazy.to_s
     assert_equal "comment", LazyAttrClass.lazy.comment
   end
   
-  def test_lazy_attr_creates_new_comment_for_unknown_attributes
-    assert LazyAttrClass.respond_to?(:unknown)
+  def test_lazy_attr_maps_accessor_to_string_key
+    assert LazyAttrClass.alt != nil
+    assert_equal LazyAttrClass.const_attrs['lazy'], LazyAttrClass.alt
+  end
+  
+  def test_lazy_attr_only_creates_writer_if_specified
+    assert LazyAttrClass.respond_to?(:no_writer)
+    assert !LazyAttrClass.respond_to?(:no_writer=)
+  end
+  
+  def test_lazy_attr_creates_new_Subject_for_unknown_attributes
+    assert LazyAttrClass.const_attrs['unknown'] == nil
+    assert LazyAttrClass.unknown != nil
     
     assert_equal Lazydoc::Subject, LazyAttrClass.unknown.class
     assert_equal '', LazyAttrClass.unknown.to_s
@@ -67,25 +146,27 @@ class AttributesTest < Test::Unit::TestCase
   end
   
   def test_lazy_register
-    assert LazyRegisterClass.respond_to?(:lazy)
+    m = LazyRegisterClass.const_attrs[:lazy]
+    m.resolve
     
-    assert_equal Lazydoc::Method, LazyRegisterClass.lazy.class
-    assert_equal "lazy", LazyRegisterClass.lazy.method_name
-    assert_equal "comment", LazyRegisterClass.lazy.comment
+    assert_equal Lazydoc::Method, m.class
+    assert_equal "lazy", m.method_name
+    assert_equal "comment", m.comment
   end
   
   class LazyRegisterSubClass < LazyRegisterClass
-    # inherited comment
+    # subclass comment
     def lazy
     end
   end
   
   def test_lazy_register_methods_are_inherited
-    assert LazyRegisterSubClass.respond_to?(:lazy)
+    m = LazyRegisterSubClass.const_attrs[:lazy]
+    m.resolve
     
-    assert_equal Lazydoc::Method, LazyRegisterSubClass.lazy.class
-    assert_equal "lazy", LazyRegisterSubClass.lazy.method_name
-    assert_equal "inherited comment", LazyRegisterSubClass.lazy.comment
+    assert_equal Lazydoc::Method, m.class
+    assert_equal "lazy", m.method_name
+    assert_equal "subclass comment", m.comment
   end
   
 end
