@@ -68,4 +68,49 @@ class LazydocBenchmark < Test::Unit::TestCase
       end
     end
   end
+  
+  
+  class RegisterMethodControl
+  end
+  
+  class RegisterMethod
+    extend Lazydoc::Attributes
+    lazy_register :method_name
+  end
+  
+  class RegisterMethodRef
+    extend Lazydoc::Attributes
+  end
+  
+  def test_register_methods_speed
+    puts "test_register_methods_speed"
+    Benchmark.bm(25) do |x|
+      block = lambda {}
+      n = 10000
+      x.report("control") do 
+        n.times do 
+          RegisterMethodControl.send(:define_method, :method_name, &block)
+        end
+      end
+    
+      x.report("reg method") do 
+        n.times do 
+          RegisterMethod.send(:define_method, :method_name, &block)
+        end
+      end
+      
+      x.report("unreg method") do 
+        n.times do 
+          RegisterMethod.send(:define_method, :alt, &block)
+        end
+      end
+      
+      x.report("no reg method") do 
+        n.times do 
+          RegisterMethodRef.send(:define_method, :method_name, &block)
+        end
+      end
+    end
+  end
+  
 end
