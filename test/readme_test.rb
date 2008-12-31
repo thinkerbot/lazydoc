@@ -32,38 +32,32 @@ A content string can span
 multiple lines...
 ..............................
 }
-    assert_equal expected, "\n#{'.' * 30}\n" + comment.wrap(30) + "\n#{'.' * 30}\n"
+    thirtydots = "\n#{'.' * 30}\n"
+    assert_equal expected, "#{thirtydots}#{comment.wrap(30)}#{thirtydots}"
 
     tempfile = Tempfile.new('readme_test')
     tempfile << %Q{
 class Helpers
   extend Lazydoc::Attributes
 
-  const_attrs[:one] = register___
-  # method_one is registered by the helper
+  lazy_register(:method_one)
+  
+  # method_one is registered whenever it
+  # gets defined
   def method_one(a, b='str', &c)
   end
-
+  
   # register_caller will register the line
   # that *calls* method_two
   def method_two
     Lazydoc.register_caller
   end
-
-  lazy_attr(:three, :method_three)
-  lazy_register(:method_three)
 end
 
 # *THIS* is the line that gets
 # registered by method_two
-Helpers.const_attrs[:two] = Helpers.new.method_two
+Helpers.const_attrs[:method_two] = Helpers.new.method_two
 
-class Helpers
-  # notice method three is registered in
-  # a totally separate place... 
-  def method_three
-  end
-end
 }
     tempfile.close
     load(tempfile.path)
@@ -71,19 +65,27 @@ end
     doc = Helpers.lazydoc
     doc.resolve
 
-    one = Helpers.const_attrs[:one]
+    one = Helpers.const_attrs[:method_one]
     assert_equal "method_one", one.method_name
     assert_equal ["a", "b='str'", "&c"], one.arguments
-    assert_equal "method_one is registered by the helper", one.to_s
+    assert_equal "method_one is registered whenever it gets defined", one.to_s
     
-    two = Helpers.const_attrs[:two]
-    assert_equal "Helpers.const_attrs[:two] = Helpers.new.method_two", two.subject
+    two = Helpers.const_attrs[:method_two]
+    assert_equal "Helpers.const_attrs[:method_two] = Helpers.new.method_two", two.subject
     assert_equal "*THIS* is the line that gets registered by method_two", two.to_s
 
-    three = Helpers.three
-    assert_equal "method_three", three.method_name
-    assert_equal [], three.arguments
-    assert_equal "notice method three is registered in a totally separate place...", three.to_s
+    tempfile = Tempfile.new('readme_test')
+    tempfile << %Q{
+class Helpers
+  lazy_attr(:one, :method_one)
+  lazy_attr(:two, :method_two)
+end
+}
+    tempfile.close
+    load(tempfile.path)
+    
+    assert_equal "method_one", Helpers.one.method_name
+    assert_equal "Helpers.const_attrs[:method_two] = Helpers.new.method_two", Helpers.two.subject
   end
   
   def test_constant_attributes_usage_documentation

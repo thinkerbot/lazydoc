@@ -24,7 +24,9 @@ Lazydoc pulls out the documentation:
 
 Comments support wrapping, allowing for easy presentation:
 
-  "\n#{'.' * 30}\n" + comment.wrap(30) + "\n#{'.' * 30}\n"
+  thirtydots = "\n#{'.' * 30}\n"
+  
+  "#{thirtydots}#{comment.wrap(30)}#{thirtydots}"
   # => %q{
   # ..............................
   # This is the comment content.
@@ -33,14 +35,16 @@ Comments support wrapping, allowing for easy presentation:
   # ..............................
   # }
 
-In addition, Lazydoc provides helpers to register individual lines
-of code, particularly method definitions:
+In addition, Lazydoc provides helpers to register individual lines of code, 
+particularly method definitions:
 
   class Helpers
     extend Lazydoc::Attributes
     
-    const_attrs[:one] = register___
-    # method_one is registered by the helper
+    lazy_register(:method_one)
+    
+    # method_one is registered whenever it 
+    # gets defined
     def method_one(a, b='str', &c)
     end
     
@@ -49,39 +53,34 @@ of code, particularly method definitions:
     def method_two
       Lazydoc.register_caller
     end
-    
-    lazy_attr(:three, :method_three)
-    lazy_register(:method_three)
   end
   
   # *THIS* is the line that gets
   # registered by method_two
-  Helpers.const_attrs[:two] = Helpers.new.method_two
-  
-  class Helpers
-    # notice method three is registered in
-    # a totally separate place... 
-    def method_three
-    end
-  end
+  Helpers.const_attrs[:method_two] = Helpers.new.method_two
   
   doc = Helpers.lazydoc
   doc.resolve
   
-  one = Helpers.const_attrs[:one]
-  one.method_name        # => "method_one"
-  one.arguments          # => ["a", "b='str'", "&c"]
-  one.to_s               # => "method_one is registered by the helper"
+  one = Helpers.const_attrs[:method_one]
+  one.method_name            # => "method_one"
+  one.arguments              # => ["a", "b='str'", "&c"]
+  one.to_s                   # => "method_one is registered whenever it gets defined"
   
-  two = Helpers.const_attrs[:two]
-  two.subject            # => "two = Helpers.new.method_two"
-  two.to_s               # => "*THIS* is the line that gets registered by method_two"
+  two = Helpers.const_attrs[:method_two]
+  two.subject                # => "Helpers.const_attrs[:method_two] = Helpers.new.method_two"
+  two.to_s                   # => "*THIS* is the line that gets registered by method_two"
 
-  three = Helpers.three
-  three.method_name      # => "method_three"
-  three.arguments        # => []
-  three.to_s             # => "notice method three is registered in a totally separate place..."
+Lazy accessors may be defined to map the registered lines as well:
+
+  class Helpers
+    lazy_attr(:one, :method_one)
+    lazy_attr(:two, :method_two)
+  end
   
+  Helpers.one.method_name    # => "method_one"
+  Helpers.two.subject        # => "Helpers.const_attrs[:method_two] = Helpers.new.method_two"
+
 Check out these links for development, and bug tracking.
 
 * Website[http://tap.rubyforge.org/lazydoc]
