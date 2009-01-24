@@ -146,6 +146,15 @@ module Lazydoc
       @source_file = source_file == nil ? nil : File.expand_path(source_file)
     end
     
+    # Sets the default_const_name.  Raises an error if default_const_name is
+    # already set to a different value.
+    def default_const_name=(input)
+      @default_const_name = case @default_const_name
+      when nil, input then input
+      else raise ArgumentError, "default_const_name cannot be overridden #{source_file}: #{@default_const_name.inspect} != #{input.inspect}"
+      end
+    end
+    
     # Registers the specified line number to self.  Register may take an
     # integer or a regexp for dynamic evaluation. See Comment#resolve for
     # more details.

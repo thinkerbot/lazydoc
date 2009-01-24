@@ -227,6 +227,22 @@ Ignored::key value
   end
   
   #
+  # default_const_name= test
+  #
+  
+  def test_set_default_const_name_sets_default_const_name
+    assert_equal nil, doc.default_const_name
+    doc.default_const_name = 'Default::ConstName'
+    assert_equal 'Default::ConstName', doc.default_const_name
+  end
+  
+  def test_set_default_const_name_raises_error_for_an_inconsistent_default_const_name
+    doc.default_const_name = 'Default::ConstName'
+    e = assert_raise(ArgumentError) { doc.default_const_name = 'New::ConstName' }
+    assert_equal "default_const_name cannot be overridden #{doc.source_file}: \"Default::ConstName\" != \"New::ConstName\"", e.message
+  end
+  
+  #
   # register test
   #
 

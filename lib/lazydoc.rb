@@ -24,14 +24,11 @@ module Lazydoc
     lazydoc = registry.find {|doc| doc.source_file == source_file }
     
     unless lazydoc
-      lazydoc = Document.new(source_file, default_const_name)
+      lazydoc = Document.new(source_file)
       registry << lazydoc
     end
     
-    if lazydoc.default_const_name != default_const_name
-      raise ArgumentError, "inconsistent default_const_name specified for #{source_file}: #{lazydoc.default_const_name.inspect} != #{default_const_name.inspect}"
-    end
-    
+    lazydoc.default_const_name = default_const_name
     lazydoc
   end
 
