@@ -71,7 +71,7 @@ class LazydocTest < Test::Unit::TestCase
 
   def test_register_file_raises_error_for_an_inconsistent_default_const_name
     doc = Lazydoc.register_file('/path/to/file', 'Default::ConstName')
-    e = assert_raise(ArgumentError) { Lazydoc.register_file('/path/to/file', 'New::ConstName') }
+    e = assert_raises(ArgumentError) { Lazydoc.register_file('/path/to/file', 'New::ConstName') }
     assert_equal "default_const_name cannot be overridden #{File.expand_path('/path/to/file')}: \"Default::ConstName\" != \"New::ConstName\"", e.message
   end
   

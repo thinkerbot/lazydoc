@@ -221,14 +221,14 @@ module Lazydoc
     # As shown in the examples, the dynamically determined line_number
     # overwrites the Regexp or Proc.
     def parse_up(str, lines=nil, skip_subject=true)
-      parse(str, lines) do |n, lines|
+      parse(str, lines) do |n, comment_lines|
         # remove whitespace lines
         n -= 1 if skip_subject
-        n -= 1 while n >=0 && lines[n].strip.empty?
+        n -= 1 while n >=0 && comment_lines[n].strip.empty?
 
         # put together the comment
         while n >= 0
-          line = lines[n]
+          line = comment_lines[n]
           break if block_given? && yield(line)
           break unless prepend(line)
           n -= 1
@@ -260,12 +260,12 @@ module Lazydoc
     #   c.comment      # => "documentation for section two"
     #
     def parse_down(str, lines=nil, skip_subject=true)
-      parse(str, lines) do |n, lines|
+      parse(str, lines) do |n, comment_lines|
         # skip the subject line
         n += 1 if skip_subject
         
         # put together the comment
-        while line = lines[n]
+        while line = comment_lines[n]
           break if block_given? && yield(line)
           break unless append(line)
           n += 1

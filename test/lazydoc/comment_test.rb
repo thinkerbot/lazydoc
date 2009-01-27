@@ -307,11 +307,11 @@ end}
   def test_parse_up_raises_error_when_no_dynamic_line_number_is_resolved
     block = lambda {|scanner, lines| nil }
     c.line_number = block
-    e = assert_raise(RuntimeError) { c.parse_up("") }
+    e = assert_raises(RuntimeError) { c.parse_up("") }
     assert_equal "invalid dynamic line number: #{block.inspect}", e.message
 
     c.line_number = /non-matching/
-    e = assert_raise(RuntimeError) { c.parse_up("") }
+    e = assert_raises(RuntimeError) { c.parse_up("") }
     assert_equal "invalid dynamic line number: /non-matching/", e.message
   end
   

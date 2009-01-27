@@ -238,7 +238,7 @@ Ignored::key value
   
   def test_set_default_const_name_raises_error_for_an_inconsistent_default_const_name
     doc.default_const_name = 'Default::ConstName'
-    e = assert_raise(ArgumentError) { doc.default_const_name = 'New::ConstName' }
+    e = assert_raises(ArgumentError) { doc.default_const_name = 'New::ConstName' }
     assert_equal "default_const_name cannot be overridden #{doc.source_file}: \"Default::ConstName\" != \"New::ConstName\"", e.message
   end
   

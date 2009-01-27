@@ -21,7 +21,7 @@ class UtilsTest < Test::Unit::TestCase
   end
   
   def test_convert_to_scanner_raises_error_for_non_String_non_StringScanner_inputs
-    e = assert_raise(TypeError) { convert_to_scanner(Object.new) }
+    e = assert_raises(TypeError) { convert_to_scanner(Object.new) }
     assert_equal "can't convert Object into StringScanner", e.message
   end
   
