@@ -85,7 +85,8 @@ module Lazydoc
       args = []
       brakets = braces = parens = 0
       start = scanner.pos
-      broke = while scanner.skip(/.*?['"#,\(\)\{\}\[\]]/)
+      broke = false
+      while scanner.skip(/.*?['"#,\(\)\{\}\[\]]/)
         pos = scanner.pos - 1
         
         case str[pos]
@@ -97,13 +98,15 @@ module Lazydoc
           args << str[start, pos-start].strip
           start = pos + 1
         
-        when ?# then break(true)                # break on a comment
+        when ?# then broke = true; break        # break on a comment
         when ?' then skip_quote(scanner, /'/)   # parse over quoted strings
         when ?" then skip_quote(scanner, /"/)   # parse over double-quoted string
           
         when ?( then parens += 1                # for brakets, braces, and parenthesis
         when ?)                                 # simply track the nesting EXCEPT for
-          break(true) if parens == 0            # RPAREN.  If the closing parenthesis
+          if parens == 0                        # RPAREN.  If the closing parenthesis
+            broke = true; break
+          end
           parens -= 1                           # is found, break.
         when ?[ then braces += 1
         when ?] then braces -= 1

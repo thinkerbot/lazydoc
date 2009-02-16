@@ -35,32 +35,8 @@ multiple lines...
     thirtydots = "\n#{'.' * 30}\n"
     assert_equal expected, "#{thirtydots}#{comment.wrap(30)}#{thirtydots}"
 
-    tempfile = Tempfile.new('readme_test')
-    tempfile << %Q{
-class Helpers
-  extend Lazydoc::Attributes
-
-  lazy_register(:method_one)
-  
-  # method_one is registered whenever it
-  # gets defined
-  def method_one(a, b='str', &c)
-  end
-  
-  # register_caller will register the line
-  # that *calls* method_two
-  def method_two
-    Lazydoc.register_caller
-  end
-end
-
-# *THIS* is the line that gets
-# registered by method_two
-Helpers.const_attrs[:method_two] = Helpers.new.method_two
-
-}
-    tempfile.close
-    load(tempfile.path)
+    helpers_file_one = __FILE__.chomp("_test.rb") + "/helpers_one.rb"
+    load(helpers_file_one)
     
     doc = Helpers.lazydoc
     doc.resolve
@@ -74,15 +50,8 @@ Helpers.const_attrs[:method_two] = Helpers.new.method_two
     assert_equal "Helpers.const_attrs[:method_two] = Helpers.new.method_two", two.subject
     assert_equal "*THIS* is the line that gets registered by method_two", two.to_s
 
-    tempfile = Tempfile.new('readme_test')
-    tempfile << %Q{
-class Helpers
-  lazy_attr(:one, :method_one)
-  lazy_attr(:two, :method_two)
-end
-}
-    tempfile.close
-    load(tempfile.path)
+    helpers_file_two = __FILE__.chomp("_test.rb") + "/helpers_two.rb"
+    load(helpers_file_two)
     
     assert_equal "method_one", Helpers.one.method_name
     assert_equal "Helpers.const_attrs[:method_two] = Helpers.new.method_two", Helpers.two.subject
