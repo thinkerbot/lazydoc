@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "lazydoc"
-  s.version = "0.3.0"
+  s.version = "0.3.1"
   s.author = "Simon Chiang"
   s.email = "simon.a.chiang@gmail.com"
   s.homepage = "http://tap.rubyforge.org/lazydoc"
@@ -15,6 +15,7 @@ Gem::Specification.new do |s|
   s.extra_rdoc_files = %W{
     README
     MIT-LICENSE
+    History
   }
   
   # list the files you want to include here. you can

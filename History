@@ -1,0 +1,6 @@
+== 0.3.1 / 2009-02-17
+
+Update release with trivial changes that remove warnings under ruby 1.9
+and to accommodate JRuby 1.1.6
+
+* documents may now set default_const_name
