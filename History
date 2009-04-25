@@ -1,3 +1,7 @@
+==
+
+* lazy attributes can now be accessed without auto-resolve
+
 == 0.3.1 / 2009-02-17
 
 Update release with trivial changes that remove warnings under ruby 1.9

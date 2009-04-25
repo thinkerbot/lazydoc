@@ -108,8 +108,20 @@ class AttributesTest < Test::Unit::TestCase
     LazyAttrClass.const_attrs.clear
     LazyAttrClass.lazydoc.resolved = false
     
-    assert_equal "subject", LazyAttrClass.lazy.to_s
-    assert_equal "comment", LazyAttrClass.lazy.comment
+    lazy = LazyAttrClass.lazy
+    assert LazyAttrClass.lazydoc.resolved
+    assert_equal "subject", lazy.to_s
+    assert_equal "comment", lazy.comment
+  end
+  
+  def test_lazy_attr_does_not_resolve_unless_specified
+    LazyAttrClass.const_attrs.clear
+    LazyAttrClass.lazydoc.resolved = false
+    
+    lazy = LazyAttrClass.lazy(false)
+    assert !LazyAttrClass.lazydoc.resolved
+    assert_equal nil, lazy.subject
+    assert_equal [], lazy.content
   end
   
   def test_lazy_attr_maps_accessor_to_string_key

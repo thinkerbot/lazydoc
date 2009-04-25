@@ -115,9 +115,9 @@ module Lazydoc
       end
       
       instance_eval %Q{
-def #{symbol}
+def #{symbol}(resolve=true)
   comment = const_attrs[#{key}] ||= Subject.new(nil, lazydoc)
-  comment.kind_of?(Comment) ? comment.resolve : comment
+  resolve && comment.kind_of?(Comment) ? comment.resolve : comment
 end}
 
       instance_eval(%Q{
