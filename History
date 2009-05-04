@@ -1,4 +1,4 @@
-==
+== 0.3.2 / 2009-05-03
 
 * lazy attributes can now be accessed without auto-resolve
 
