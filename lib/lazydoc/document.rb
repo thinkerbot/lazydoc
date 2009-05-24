@@ -89,7 +89,7 @@ module Lazydoc
       #   # ['Another', 'key', 'another value']]
       #
       # Returns the StringScanner used during scanning.
-      def scan(str, key) # :yields: const_name, key, value
+      def scan(str, key='[a-z_]+') # :yields: const_name, key, value
         scanner = case str
         when StringScanner then str
         when String then StringScanner.new(str)
@@ -205,7 +205,7 @@ module Lazydoc
       lines = Utils.split_lines(str)
       scanner = Utils.convert_to_scanner(str)
       
-      Document.scan(scanner, '[a-z_]+') do |const_name, key, value|
+      Document.scan(scanner) do |const_name, key, value|
         # get or initialize the comment that will be parsed
         comment = (self[const_name][key] ||= Subject.new(nil, self))
         
