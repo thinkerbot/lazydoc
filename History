@@ -1,6 +1,7 @@
-== 0.3.2 / 2009-05-03
+== 0.9.0 / 2009-05-25
 
 * lazy attributes can now be accessed without auto-resolve
+* added a default key to Document.scan
 
 == 0.3.1 / 2009-02-17
 
