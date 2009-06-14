@@ -37,16 +37,16 @@ class DocumentTest < Test::Unit::TestCase
     r = Lazydoc::ATTRIBUTE_REGEXP
 
     assert r =~ "::key"
-    assert_equal [nil, "key", ""], [$1, $3, $4]
+    assert_equal [nil, "key", ""], [$1, $2, $3]
     
     assert r =~ "::key-"
-    assert_equal [nil, "key", "-"], [$1, $3, $4]
+    assert_equal [nil, "key", "-"], [$1, $2, $3]
     
     assert r =~ "Name::Space::key trailer"
-    assert_equal ["Name::Space", "key", ""], [$1, $3, $4]
+    assert_equal ["Name::Space", "key", ""], [$1, $2, $3]
 
     assert r =~ "Name::Space::key- trailer"
-    assert_equal ["Name::Space", "key", "-"], [$1, $3, $4]
+    assert_equal ["Name::Space", "key", "-"], [$1, $2, $3]
     
     assert r !~ ": :key"
     assert r !~ "::\nkey"
@@ -86,7 +86,7 @@ class DocumentTest < Test::Unit::TestCase
     result = CallerRegexpTestModule.call(:pass, r)
     assert_equal MatchData, result.class
     assert_equal __FILE__, result[1]
-    assert_equal 10, result[3].to_i
+    assert_equal 10, result[2].to_i
     
     assert_nil CallerRegexpTestModule.call(:fail, r)
   end

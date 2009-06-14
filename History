@@ -1,3 +1,7 @@
+==
+
+* optimized regexps
+
 == 0.9.0 / 2009-05-25
 
 * lazy attributes can now be accessed without auto-resolve

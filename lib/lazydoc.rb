@@ -59,7 +59,7 @@ module Lazydoc
   #
   def register_caller(comment_class=Comment, caller_index=1)
     caller[caller_index] =~ CALLER_REGEXP
-    Lazydoc[$1].register($3.to_i - 1, comment_class)
+    Lazydoc[$1].register($2.to_i - 1, comment_class)
   end
   
   # Parses the usage for a file (ie the first comment in the file 

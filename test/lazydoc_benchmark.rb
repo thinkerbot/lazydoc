@@ -113,4 +113,28 @@ class LazydocBenchmark < Test::Unit::TestCase
     end
   end
   
+  def test_regexp_speed
+    puts "test_regexp_speed"
+    Benchmark.bm(25) do |x|
+      n = 100000
+      
+      r = Lazydoc::CALLER_REGEXP
+      str = caller[1]
+      x.report("CALLER_REGEXP") do 
+        n.times {r =~ str}
+      end
+      
+      r = ATTRIBUTE_REGEXP
+      str = "Nested::Const::key"
+      x.report("ATTRIBUTE_REGEXP") do 
+        n.times {r =~ str}
+      end
+      
+      r = CONSTANT_REGEXP
+      str = "#   Nested::Const::"
+      x.report("CONSTANT_REGEXP") do 
+        n.times {r =~ str}
+      end
+    end
+  end
 end

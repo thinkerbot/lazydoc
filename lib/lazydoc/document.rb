@@ -10,22 +10,22 @@ module Lazydoc
   # A regexp matching an attribute start or end.  After a match:
   #
   #   $1:: const_name
-  #   $3:: key
-  #   $4:: end flag
+  #   $2:: key
+  #   $3:: end flag
   #
-  ATTRIBUTE_REGEXP = /([A-Z][A-z]*(::[A-Z][A-z]*)*)?::([a-z_]+)(-?)/
+  ATTRIBUTE_REGEXP = /([A-Z][A-z]*(?:::[A-Z][A-z]*)*)?::([a-z_]+)(-?)/
 
   # A regexp matching constants from the ATTRIBUTE_REGEXP leader
-  CONSTANT_REGEXP = /#.*?([A-Z][A-z]*(::[A-Z][A-z]*)*)?$/
+  CONSTANT_REGEXP = /#.*?([A-Z][A-z]*(?:::[A-Z][A-z]*)*)?$/
   
   # A regexp matching a caller line, to extract the calling file
   # and line number.  After a match:
   #
   #   $1:: file
-  #   $3:: line number (as a string, obviously)
+  #   $2:: line number (as a string, obviously)
   #
   # Note that line numbers in caller start at 1, not 0.
-  CALLER_REGEXP = /^(([A-z]:)?[^:]+):(\d+)/
+  CALLER_REGEXP = /^((?:[A-z]:)?[^:]+):(\d+)/
   
   # A Document resolves constant attributes and code comments for a particular
   # source file.  Documents may be assigned a default_const_name to be used 
@@ -184,7 +184,7 @@ module Lazydoc
     def register___(comment_class=Comment, caller_index=0)
       caller[caller_index] =~ CALLER_REGEXP
       block = lambda do |scanner, lines|
-        n = $3.to_i
+        n = $2.to_i
         n += 1 while lines[n] =~ /^\s*(#.*)?$/
         n
       end
@@ -216,7 +216,7 @@ module Lazydoc
         comment.parse_down(scanner, lines) do |line|
           if line =~ ATTRIBUTE_REGEXP
             # rewind to capture the next attribute unless an end is specified.
-            scanner.unscan unless $4 == '-' && $3 == key && $1.to_s == const_name
+            scanner.unscan unless $3 == '-' && $2 == key && $1.to_s == const_name
             true
           else false
           end
