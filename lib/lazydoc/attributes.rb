@@ -9,7 +9,7 @@ module Lazydoc
   #     lazy_attr :key
   #   end
   #
-  #   ConstName.source_file            # =>  __FILE__
+  #   ConstName.source_file            # =>  File.expand_path(__FILE__)
   #   ConstName::key.subject           # => 'value'
   # 
   # ==== Keys and Register
@@ -62,7 +62,7 @@ module Lazydoc
   #   Paired.two.comment      # => "this is the lazyily-registered method two comment"
   #
   module Attributes
-
+    
     # The source file for the extended class.  By default source_file
     # is set to the file where Attributes extends the class (if you 
     # include Attributes, you must set source_file manually).
@@ -70,11 +70,23 @@ module Lazydoc
     
     def self.extended(base) # :nodoc:
       caller[1] =~ CALLER_REGEXP
-      base.source_file ||= $1
+      base.source_file ||= File.expand_path($1)
     end
     
-    # Inherits registered_methods from parent to child.
+    # Inherits registered_methods from parent to child.  Also registers the
+    # source_file for the child (if necessary) as the file where the
+    # inheritance first occurs.
     def inherited(child)
+      unless child.source_file
+        caller.each do |call|
+          next if call =~ /in `inherited'$/
+          
+          call =~ CALLER_REGEXP
+          child.source_file = File.expand_path($1)
+          break
+        end
+      end
+      
       child.registered_methods.merge!(registered_methods)
       super
     end

@@ -41,7 +41,7 @@ class AttributesTest < Test::Unit::TestCase
   end
   
   def test_attributes_documentation
-    assert_equal __FILE__, ConstName.source_file
+    assert_equal File.expand_path(__FILE__), ConstName.source_file
     assert_equal 'value', ConstName::key.subject
     
     Sample.lazydoc.resolve
@@ -73,8 +73,17 @@ class AttributesTest < Test::Unit::TestCase
   end
   
   def test_lazydoc_returns_Document_registered_to_source_file
-    assert_equal __FILE__, SourceFileClass.source_file
+    assert_equal File.expand_path(__FILE__), SourceFileClass.source_file
     assert_equal Lazydoc[__FILE__], SourceFileClass.lazydoc
+  end
+  
+  class SourceFileClassWithSourceFileSet
+    instance_variable_set(:@source_file, "src")
+    extend Lazydoc::Attributes
+  end
+  
+  def test_extend_does_not_set_source_file_if_already_set
+    assert_equal "src", SourceFileClassWithSourceFileSet.source_file
   end
   
   #
@@ -192,6 +201,10 @@ class AttributesTest < Test::Unit::TestCase
     assert_equal "preset string", LazyRegisterClass.const_attrs[:conflict]
   end
   
+  #
+  # inherited test
+  #
+  
   class LazyRegisterSubClass < LazyRegisterClass
     # subclass comment
     def lazy
@@ -205,5 +218,22 @@ class AttributesTest < Test::Unit::TestCase
     assert_equal Lazydoc::Method, m.class
     assert_equal "lazy", m.method_name
     assert_equal "subclass comment", m.comment
+  end
+  
+  def test_lazy_register_registers_source_file_as_file_where_inheritance_first_occurs
+    assert_equal File.expand_path(__FILE__), LazyRegisterClass.source_file
+    assert_equal File.expand_path(__FILE__), LazyRegisterSubClass.source_file
+    
+    assert !AttributesTest.const_defined?(:A)
+    assert !AttributesTest.const_defined?(:B)
+    
+    a = __FILE__.chomp(".rb") + "/a.rb"
+    b = __FILE__.chomp(".rb") + "/b.rb"
+    
+    load(a)
+    load(b)
+    
+    assert_equal File.expand_path(a), A.source_file
+    assert_equal File.expand_path(b), B.source_file
   end
 end
