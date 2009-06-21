@@ -235,5 +235,13 @@ class AttributesTest < Test::Unit::TestCase
     
     assert_equal File.expand_path(a), A.source_file
     assert_equal File.expand_path(b), B.source_file
+    
+    AttributesTest.send(:remove_const, :A)
+    AttributesTest.send(:remove_const, :B)
+    
+    load(b)
+    
+    assert_equal File.expand_path(b), A.source_file
+    assert_equal File.expand_path(b), B.source_file
   end
 end

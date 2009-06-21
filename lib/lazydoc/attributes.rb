@@ -63,19 +63,23 @@ module Lazydoc
   #
   module Attributes
     
-    # The source file for the extended class.  By default source_file
-    # is set to the file where Attributes extends the class (if you 
-    # include Attributes, you must set source_file manually).
+    # The source file for the extended class.
+    # 
+    # By default source_file is set to the file where Attributes extends the class
+    # (if you include Attributes, you must set source_file manually).  Classes that
+    # inherit from the extended class will set source_file to the file where
+    # inheritance first occurs.
     attr_accessor :source_file
     
-    def self.extended(base) # :nodoc:
+    # Sets source_file as the file where Attributes first extends the class.
+    def self.extended(base)
       caller[1] =~ CALLER_REGEXP
       base.source_file ||= File.expand_path($1)
+      super
     end
     
     # Inherits registered_methods from parent to child.  Also registers the
-    # source_file for the child (if necessary) as the file where the
-    # inheritance first occurs.
+    # source_file for the child as the file where the inheritance first occurs.
     def inherited(child)
       unless child.source_file
         caller.each do |call|
