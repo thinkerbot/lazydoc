@@ -119,13 +119,12 @@ class LazydocTest < Test::Unit::TestCase
     end
   end
   
-  def test_guess_const_name_raises_error_if_source_is_relative_to_many_load_paths
+  def test_guess_const_name_uses_shortest_matching_load_path
     load_path_test do
       $LOAD_PATH << "/path"
       $LOAD_PATH << "/path/lib"
       
-      err = assert_raises(RuntimeError) { Lazydoc.guess_const_name("/path/lib/const.rb") }
-      assert_equal "multiple constant names are possible for: \"/path/lib/const.rb\"", err.message
+      assert_equal "Const", Lazydoc.guess_const_name("/path/lib/const.rb") 
     end
   end
   

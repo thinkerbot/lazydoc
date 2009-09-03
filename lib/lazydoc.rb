@@ -22,8 +22,7 @@ module Lazydoc
   end
   
   # Guesses the default constant name for the source file by camelizing the
-  # relative path from a matching $LOAD_PATH to the source file.  An error 
-  # is raised if the source file is relative to more than one load path.
+  # shortest relative path from a matching $LOAD_PATH to the source file.
   # Returns nil if the source file is not relative to any load path.
   #
   # ==== Code Credit
@@ -43,17 +42,12 @@ module Lazydoc
       end
     end
     
-    case load_paths.length
-    when 0
-      nil
-    when 1
-      load_path = load_paths[0]
-      extname = File.extname(source_file)
-      relative_path = source_file[(load_path.length + 1)..(-1 - extname.length)]
-      relative_path.gsub(/\/(.?)/) { "::" + $1.upcase }.gsub(/(^|_)(.)/) { $2.upcase }
-    else
-      raise "multiple constant names are possible for: #{source_file.inspect}"
-    end
+    return nil if load_paths.empty?
+    
+    load_path = load_paths.sort_by {|load_path| load_path.length}.pop
+    extname = File.extname(source_file)
+    relative_path = source_file[(load_path.length + 1)..(-1 - extname.length)]
+    relative_path.gsub(/\/(.?)/) { "::" + $1.upcase }.gsub(/(^|_)(.)/) { $2.upcase }
   end
   
   # Generates a Document the source_file and default_const_name and adds it to
