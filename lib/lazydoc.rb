@@ -8,11 +8,17 @@ module Lazydoc
     @registry ||= []
   end
   
+  # Returns the Document in registry for the specified source file, or nil
+  # if no such document exists.
+  def document(source_file)
+    source_file = File.expand_path(source_file.to_s)
+    registry.find {|doc| doc.source_file == source_file }
+  end
+  
   # Returns the Document in registry for the specified source file.
   # If no such Document exists, one will be created for it.
   def [](source_file)
-    source_file = File.expand_path(source_file.to_s)
-    registry.find {|doc| doc.source_file == source_file } || register_file(source_file)
+    document(source_file) || register_file(source_file)
   end
   
   # Generates a Document the source_file and default_const_name and adds it to

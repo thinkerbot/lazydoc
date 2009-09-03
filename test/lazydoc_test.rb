@@ -76,16 +76,31 @@ class LazydocTest < Test::Unit::TestCase
   end
   
   #
+  # document test
+  #
+
+  def test_document_returns_document_in_registry_for_source_file
+    doc = Lazydoc::Document.new('/path/to/file')
+    Lazydoc.registry << doc
+    assert_equal doc, Lazydoc.document('/path/to/file')
+  end
+  
+  def test_document_returns_nil_if_no_such_document_exists
+    assert Lazydoc.registry.empty?
+    assert_equal nil, Lazydoc.document('/path/to/file')
+  end
+  
+  #
   # [] test
   #
 
-  def test_get_returns_document_in_registry_for_source_file
+  def test_aget_returns_document_in_registry_for_source_file
     doc = Lazydoc::Document.new('/path/to/file')
     Lazydoc.registry << doc
     assert_equal doc, Lazydoc['/path/to/file']
   end
 
-  def test_get_initializes_new_document_if_necessary
+  def test_aget_initializes_new_document_if_necessary
     assert Lazydoc.registry.empty?
     doc = Lazydoc['/path/for/non_existant_doc']
     

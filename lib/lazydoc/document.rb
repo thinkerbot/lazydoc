@@ -136,6 +136,9 @@ module Lazydoc
     # Returns the attributes for the specified const_name.  If an empty 
     # const_name ('') is specified, and a default_const_name is set,
     # the default_const_name will be used instead.
+    #
+    # Note this method will return ALL attributes associated with const_name,
+    # not just attributes associated with self.
     def [](const_name)
       const_name = default_const_name if default_const_name && const_name == ''
       Document[const_name]
