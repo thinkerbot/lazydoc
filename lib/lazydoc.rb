@@ -21,15 +21,47 @@ module Lazydoc
     document(source_file) || register_file(source_file)
   end
   
+  # Guesses the default constant name for the source file by camelizing the
+  # relative path from a matching $LOAD_PATH to the source file.  An error 
+  # is raised if the source file is relative to more than one load path.
+  # Returns nil if the source file is not relative to any load path.
+  #
+  # ==== Code Credit
+  #
+  # The camelize algorithm is taken from the ActiveSupport {Inflections}[http://api.rubyonrails.org/classes/ActiveSupport/CoreExtensions/String/Inflections.html]
+  # module.  See the {Tap::Env::StringExt}[http://tap.rubyforge.org/rdoc/classes/Tap/Env/StringExt.html]
+  # module (which uses the same) for a proper credit and license.
+  #
+  def guess_const_name(source_file)
+    source_file = File.expand_path(source_file.to_s)
+    
+    load_paths = []
+    $LOAD_PATH.each do |load_path|
+      load_path = File.expand_path(load_path)
+      if source_file.rindex(load_path, 0) == 0
+        load_paths << load_path
+      end
+    end
+    
+    case load_paths.length
+    when 0
+      nil
+    when 1
+      load_path = load_paths[0]
+      extname = File.extname(source_file)
+      relative_path = source_file[(load_path.length + 1)..(-1 - extname.length)]
+      relative_path.gsub(/\/(.?)/) { "::" + $1.upcase }.gsub(/(^|_)(.)/) { $2.upcase }
+    else
+      raise "multiple constant names are possible for: #{source_file.inspect}"
+    end
+  end
+  
   # Generates a Document the source_file and default_const_name and adds it to
   # registry, or returns the document already registered to source_file.  An
   # error is raised if you try to re-register a source_file with an inconsistent
   # default_const_name.
-  def register_file(source_file, default_const_name=nil)
-    source_file = File.expand_path(source_file.to_s)
-    lazydoc = registry.find {|doc| doc.source_file == source_file }
-    
-    unless lazydoc
+  def register_file(source_file, default_const_name=guess_const_name(source_file))
+    unless lazydoc = document(source_file)
       lazydoc = Document.new(source_file)
       registry << lazydoc
     end

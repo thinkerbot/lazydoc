@@ -43,39 +43,6 @@ class LazydocTest < Test::Unit::TestCase
   end
   
   #
-  # register_file test
-  #
-  
-  def test_register_file_adds_a_document_for_the_specified_path
-    assert Lazydoc.registry.empty?
-    
-    path = File.expand_path('/path/to/file')
-    doc = Lazydoc.register_file(path)
-    
-    assert_equal path, doc.source_file
-    assert_equal nil, doc.default_const_name
-    assert_equal [doc], Lazydoc.registry
-  end
-  
-  def test_register_file_returns_document_in_registry_for_source_file
-    path = File.expand_path('/path/to/file')
-    doc = Lazydoc::Document.new(path)
-    Lazydoc.registry << doc
-    assert_equal doc, Lazydoc.register_file(path)
-  end
-  
-  def test_register_file_initializes_document_with_default_const_name_if_provided
-    doc = Lazydoc.register_file('/path/to/file', 'Default::ConstName')
-    assert_equal 'Default::ConstName', doc.default_const_name
-  end
-
-  def test_register_file_raises_error_for_an_inconsistent_default_const_name
-    doc = Lazydoc.register_file('/path/to/file', 'Default::ConstName')
-    e = assert_raises(ArgumentError) { Lazydoc.register_file('/path/to/file', 'New::ConstName') }
-    assert_equal "default_const_name cannot be overridden #{File.expand_path('/path/to/file')}: \"Default::ConstName\" != \"New::ConstName\"", e.message
-  end
-  
-  #
   # document test
   #
 
@@ -107,6 +74,104 @@ class LazydocTest < Test::Unit::TestCase
     assert_equal [doc], Lazydoc.registry
     assert_equal File.expand_path('/path/for/non_existant_doc'), doc.source_file
     assert_equal nil, doc.default_const_name
+  end
+  
+  #
+  # guess_const_name test
+  #
+  
+  def load_path_test
+    current = $LOAD_PATH.dup
+    
+    begin
+      $LOAD_PATH.clear
+      yield
+    ensure
+      $LOAD_PATH.clear
+      $LOAD_PATH.concat(current)
+    end
+  end
+  
+  def test_guess_const_name_returns_nil_for_paths_not_relative_to_any_load_path
+    load_path_test do
+      assert_equal nil, Lazydoc.guess_const_name("/path")
+    end
+  end
+  
+  def test_guess_const_name_returns_camelized_path_relative_to_matching_load_path
+    load_path_test do
+      $LOAD_PATH << "/path"
+      
+      assert_equal "Const", Lazydoc.guess_const_name("/path/const")
+      assert_equal "Const", Lazydoc.guess_const_name("/path/const.rb")
+      assert_equal "ConstName", Lazydoc.guess_const_name("/path/const_name.rb")
+      assert_equal "ConstName", Lazydoc.guess_const_name("/path/const_name.txt")
+      assert_equal "Const::Name", Lazydoc.guess_const_name("/path/const/name.rb")
+    end
+  end
+  
+  def test_guess_const_name_expands_source_file_and_load_path
+    load_path_test do
+      $LOAD_PATH << "."
+      
+      assert_equal "Const", Lazydoc.guess_const_name("const.rb")
+      assert_equal "Const", Lazydoc.guess_const_name(File.expand_path("./const.rb"))
+    end
+  end
+  
+  def test_guess_const_name_raises_error_if_source_is_relative_to_many_load_paths
+    load_path_test do
+      $LOAD_PATH << "/path"
+      $LOAD_PATH << "/path/lib"
+      
+      err = assert_raises(RuntimeError) { Lazydoc.guess_const_name("/path/lib/const.rb") }
+      assert_equal "multiple constant names are possible for: \"/path/lib/const.rb\"", err.message
+    end
+  end
+  
+  #
+  # register_file test
+  #
+  
+  def test_register_file_adds_a_document_for_the_specified_path
+    assert Lazydoc.registry.empty?
+    
+    path = File.expand_path('/path/to/file')
+    doc = Lazydoc.register_file(path)
+    
+    assert_equal path, doc.source_file
+    assert_equal nil, doc.default_const_name
+    assert_equal [doc], Lazydoc.registry
+  end
+  
+  def test_register_file_returns_document_in_registry_for_source_file
+    path = File.expand_path('/path/to/file')
+    doc = Lazydoc::Document.new(path)
+    Lazydoc.registry << doc
+    assert_equal doc, Lazydoc.register_file(path)
+  end
+  
+  def test_register_file_initializes_document_with_default_const_name_if_provided
+    doc = Lazydoc.register_file('/path/to/file', 'Default::ConstName')
+    assert_equal 'Default::ConstName', doc.default_const_name
+    
+    doc = Lazydoc.register_file('/another/file', nil)
+    assert_equal nil, doc.default_const_name
+  end
+  
+  def test_register_file_guesses_default_const_name
+    load_path_test do
+      $LOAD_PATH << "/path"
+      
+      doc = Lazydoc.register_file('/path/to/file')
+      assert_equal 'To::File', doc.default_const_name
+    end
+  end
+  
+  def test_register_file_raises_error_for_an_inconsistent_default_const_name
+    doc = Lazydoc.register_file('/path/to/file', 'Default::ConstName')
+    e = assert_raises(ArgumentError) { Lazydoc.register_file('/path/to/file', 'New::ConstName') }
+    assert_equal "default_const_name cannot be overridden #{File.expand_path('/path/to/file')}: \"Default::ConstName\" != \"New::ConstName\"", e.message
   end
   
   #
