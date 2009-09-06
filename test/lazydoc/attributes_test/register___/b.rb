@@ -4,7 +4,7 @@ class AttributesTest
       
       lazy_attr :two, :method_two
       
-      const_attrs[:method_two] = register___
+      register___(:method_two)
       # method two comment
       def methods_two
       end

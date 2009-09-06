@@ -1,11 +1,24 @@
 require 'test/unit'
 require 'lazydoc'
 
+#
+# used in the documentation test
+#
+
 # ConstName::key value
 class ConstName
   extend Lazydoc::Attributes
 
   lazy_attr :key
+end
+
+class SubclassA < ConstName; end
+
+# SubclassB::key overridden value
+class SubclassB < ConstName; end
+
+class ConstName
+  lazy_attr :alt, 'key'
 end
 
 class AttributesTest < Test::Unit::TestCase
@@ -29,7 +42,8 @@ class AttributesTest < Test::Unit::TestCase
   class Sample
     extend Lazydoc::Attributes
 
-    const_attrs[:method_one] = register___
+    lazy_register(:method_one)
+
     # this is the method one comment
     def method_one
     end
@@ -39,26 +53,26 @@ class AttributesTest < Test::Unit::TestCase
     extend Lazydoc::Attributes
 
     lazy_attr(:one, :method_one)
-    lazy_attr(:two, :method_two)
-    lazy_register(:method_two)
+    lazy_register(:method_one)
 
-    const_attrs[:method_one] = register___
-    # this is the manually-registered method one comment
+    # this is the method one comment
     def method_one
-    end
-
-    # this is the lazyily-registered method two comment
-    def method_two
     end
   end
   
   def test_attributes_documentation
     assert_equal 'value', ConstName::key.subject
+    assert_equal 'value', SubclassA::key.subject
+    assert_equal 'overridden value', SubclassB::key.subject
+    
+    assert_equal 'value', ConstName.const_attrs['key'].subject
+    assert_equal 'value', Lazydoc::Document['ConstName']['key'].subject
+    
+    assert_equal 'value', ConstName::alt.subject
+    assert_equal nil, ConstName.const_attrs['alt']
     
     assert_equal "this is the method one comment", Sample.const_attrs[:method_one].comment
-    
-    assert_equal "this is the manually-registered method one comment", Paired.one.comment
-    assert_equal "this is the lazyily-registered method two comment", Paired.two.comment 
+    assert_equal "this is the method one comment", Paired.one.comment
   end
   
   #
@@ -101,11 +115,7 @@ class AttributesTest < Test::Unit::TestCase
   # AttributesTest::LazyAttrClass::lazy subject
   # comment
   class LazyAttrClass
-    class << self
-      include Lazydoc::Attributes
-    end
-    
-    register_lazydoc
+    extend Lazydoc::Attributes
     
     lazy_attr :lazy
     lazy_attr :alt, 'lazy'
@@ -152,7 +162,7 @@ class AttributesTest < Test::Unit::TestCase
     assert_equal nil, LazyAttrClass.unknown
   end
   
-  def test_lazy_attr_raises_error_for_unallowed_class_of_key
+  def test_lazy_attr_raises_error_for_invalid_key
     err = assert_raises(RuntimeError) do
       Class.new do
         extend Lazydoc::Attributes
@@ -160,7 +170,7 @@ class AttributesTest < Test::Unit::TestCase
       end
     end
     
-    assert_equal "invalid class for a lazy_attr key: 2 (Fixnum)", err.message
+    assert_equal "invalid lazy_attr key: 2 (Fixnum)", err.message
   end
   
   #
