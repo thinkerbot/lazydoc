@@ -44,10 +44,8 @@ class AttributesTest < Test::Unit::TestCase
     assert_equal File.expand_path(__FILE__), ConstName.source_file
     assert_equal 'value', ConstName::key.subject
     
-    Sample.lazydoc.resolve
     assert_equal "this is the method one comment", Sample.const_attrs[:method_one].comment
-
-    Paired.lazydoc.resolve
+    
     assert_equal "this is the manually-registered method one comment", Paired.one.comment
     assert_equal "this is the lazyily-registered method two comment", Paired.two.comment 
   end
@@ -243,5 +241,24 @@ class AttributesTest < Test::Unit::TestCase
     
     assert_equal File.expand_path(b), A.source_file
     assert_equal File.expand_path(b), B.source_file
+  end
+  
+  #
+  # multiple files tests
+  #
+  
+  def test_lazy_attrs_across_multiple_files
+    one = __FILE__.chomp(".rb") + "/example_one.rb"
+    two = __FILE__.chomp(".rb") + "/example_two.rb"
+    
+    load(one)
+    load(two)
+    
+    assert_equal "value for one", Example::one.to_s
+    assert_equal "value for two", Example::two.to_s
+    
+    assert_equal "method one comment", Example.const_attrs[:method_one].comment
+    assert_equal "method two comment", Example.const_attrs[:method_two].comment
+    assert_equal "method three comment", Example.const_attrs[:method_three].comment
   end
 end

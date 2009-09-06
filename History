@@ -8,6 +8,8 @@
   is the case with Lazydoc[])
 * register_file now guesses a default constant name based on
   the path relative to a matching LOAD_PATH
+* updated Lazydoc::Attributes to allow manually registered
+  comments across multiple source files
   
 == 0.9.0 / 2009-05-25
 

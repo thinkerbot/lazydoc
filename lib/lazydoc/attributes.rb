@@ -16,13 +16,14 @@ module Lazydoc
   #
   # Note that constant attributes parsed from a source file are stored in
   # const_attrs, and will ALWAYS be keyed using a string (since the 
-  # 'ConstName::key' syntax specifies a string key).
+  # 'ConstName::key' syntax always results in a string key).
   #
   #   ConstName.const_attrs['key']     # => ConstName::key
   #
-  # 'Constant Attributes' specified by non-string keys are sometimes used to
-  # tie comments to a constant that will NOT be resolved from the constant
-  # attribute syntax.  For instance you could register a method like this:
+  # Comments specified by non-string keys may also be stored in const_attrs;
+  # these will not and cannot be conflict with constant attributes.  Attributes
+  # uses such comments to tie user-specified comments to a constant.  For
+  # instance you could manually register a comment using register___:
   #
   #   class Sample
   #     extend Lazydoc::Attributes
@@ -33,12 +34,12 @@ module Lazydoc
   #     end
   #   end
   #
-  #   Sample.lazydoc.resolve
   #   Sample.const_attrs[:method_one].comment   # => "this is the method one comment"
   # 
-  # For easier access, you could define a lazy_attr to access the registered
-  # comment.  And in the simplest case, you pair a lazy_register with a
-  # lazy_attr.
+  # For easier access, you could define a lazy_attr that maps to the registered
+  # comment.  A similar strategy pairs a lazy_register with a lazy_attr.  Note
+  # that in both cases the keys (ex :method_one) provided to lazy_attr are
+  # symbols and not strings.
   #
   #   class Paired
   #     extend Lazydoc::Attributes
@@ -57,18 +58,29 @@ module Lazydoc
   #     end
   #   end
   #
-  #   Paired.lazydoc.resolve
   #   Paired.one.comment      # => "this is the manually-registered method one comment"
   #   Paired.two.comment      # => "this is the lazyily-registered method two comment"
   #
+  # The manual registration methods provided by Attributes allows comments to
+  # be registered from multiple source files.
   module Attributes
     
     # The source file for the extended class.
     # 
-    # By default source_file is set to the file where Attributes extends the class
-    # (if you include Attributes, you must set source_file manually).  Classes that
-    # inherit from the extended class will set source_file to the file where
-    # inheritance first occurs.
+    # By default source_file is set to the file where Attributes extends the
+    # class (if you include Attributes, you must set source_file manually).
+    # Classes that inherit from the extended class will set source_file to
+    # the file where inheritance first occurs.
+    #
+    # ==== Note
+    # 
+    # Assigning source_file (and hence lazydoc) is useful but also a bit
+    # arbitrary.  Comments for the extended class may be spread over many
+    # files unrelated to source_file.  Typically however, as is the case
+    # when defining the actual class, it's a good practice to define all
+    # coments in the same file and that file is usually defined as
+    # source_file.
+    #
     attr_accessor :source_file
     
     # Sets source_file as the file where Attributes first extends the class.
@@ -109,7 +121,7 @@ module Lazydoc
       Document[to_s]
     end
 
-    # Returns the Document for source_file
+    # Returns the Document for source_file.
     def lazydoc
       Lazydoc[source_file]
     end
@@ -122,17 +134,46 @@ module Lazydoc
     end
     
     # Creates a method that reads and resolves the constant attribute specified
-    # by key, which should normally be a string (see above for more details).  
-    # If writable is true, a corresponding writer is also created.
+    # by key. The method has a signature like:
+    #
+    #   def method(resolve=true)
+    #   end
+    #
+    # To simply return the constant attribute without resolving, call the 
+    # method with resolve == false. If writable is true, a corresponding
+    # writer is also created.
+    #
+    # ==== String Keys
+    #
+    # A string key indicates the method is supposed to access a 'proper'
+    # constant attribute, defined in the documentation with the standard
+    # 'Const::key' syntax.  These lazy_attrs may be defined across multiple
+    # files but it is expected that a given lazy_attr, attribute pair are
+    # defined in the same file.
+    #
+    # If you manually resolve the attribute before you access the method it
+    # technically can be declared elsewhere, but this is not a recommended
+    # practice.
+    #
+    # ==== Non-String Keys
+    #
+    # Non-string keys indicate the method maps to a manually-registered
+    # comment that is not declared with the standard constant attribute
+    # syntax. Registration methods provided by Attributes are register___,
+    # and lazy_register.  These too may be defined in multiple files.
+    #
     def lazy_attr(symbol, key=symbol.to_s, writable=true)
       key = case key
       when String, Symbol, Numeric, true, false, nil then key.inspect
       else "YAML.load(\'#{YAML.dump(key)}\')"
       end
       
+      caller[0] =~ CALLER_REGEXP
+      source_file = File.expand_path($1)
+      
       instance_eval %Q{
 def #{symbol}(resolve=true)
-  comment = const_attrs[#{key}] ||= Subject.new(nil, lazydoc)
+  comment = const_attrs[#{key}] ||= Subject.new(nil, Lazydoc["#{source_file}"])
   resolve && comment.kind_of?(Comment) ? comment.resolve : comment
 end}
 
@@ -150,7 +191,10 @@ end}) if writable
     
     # Registers the next comment (by default as a Method).
     def register___(comment_class=Method)
-      lazydoc.register___(comment_class, 1)
+      caller[0] =~ CALLER_REGEXP
+      source_file = File.expand_path($1)
+      
+      Lazydoc[source_file].register___(comment_class, 1)
     end
   end
 end
