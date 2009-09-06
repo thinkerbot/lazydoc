@@ -3,6 +3,10 @@ class AttributesTest
   class Example
     lazy_attr :two
     
+    # an example of a lazy_attr linked to the source_file
+    # which is 'example_one.rb'
+    lazy_attr :three, 'three', true, true
+    
     # method two comment
     def method_two
     end

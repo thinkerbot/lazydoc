@@ -9,7 +9,7 @@ class ConstName
 end
 
 class AttributesTest < Test::Unit::TestCase
-
+  
   #
   # documentation test
   #
@@ -248,17 +248,31 @@ class AttributesTest < Test::Unit::TestCase
   #
   
   def test_lazy_attrs_across_multiple_files
-    one = __FILE__.chomp(".rb") + "/example_one.rb"
-    two = __FILE__.chomp(".rb") + "/example_two.rb"
+    one = File.expand_path(__FILE__.chomp(".rb") + "/example_one.rb")
+    two = File.expand_path(__FILE__.chomp(".rb") + "/example_two.rb")
     
     load(one)
     load(two)
     
     assert_equal "value for one", Example::one.to_s
-    assert_equal "value for two", Example::two.to_s
+    assert_equal one, Example::one.document.source_file
     
-    assert_equal "method one comment", Example.const_attrs[:method_one].comment
-    assert_equal "method two comment", Example.const_attrs[:method_two].comment
-    assert_equal "method three comment", Example.const_attrs[:method_three].comment
+    assert_equal "value for two", Example::two.to_s
+    assert_equal two, Example::two.document.source_file
+    
+    assert_equal "value for three", Example::three.to_s
+    assert_equal one, Example::three.document.source_file
+    
+    m1 = Example.const_attrs[:method_one]
+    assert_equal "method one comment", m1.comment
+    assert_equal one, m1.document.source_file
+    
+    m2 = Example.const_attrs[:method_two]
+    assert_equal "method two comment", m2.comment
+    assert_equal two, m2.document.source_file
+    
+    m3 = Example.const_attrs[:method_three]
+    assert_equal "method three comment", m3.comment
+    assert_equal two, m3.document.source_file
   end
 end

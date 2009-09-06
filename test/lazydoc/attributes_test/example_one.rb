@@ -1,4 +1,5 @@
 # AttributesTest::Example::one value for one
+# AttributesTest::Example::three value for three
 class AttributesTest
   class Example
     extend Lazydoc::Attributes

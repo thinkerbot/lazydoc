@@ -149,7 +149,8 @@ module Lazydoc
     # constant attribute, defined in the documentation with the standard
     # 'Const::key' syntax.  These lazy_attrs may be defined across multiple
     # files but it is expected that a given lazy_attr, attribute pair are
-    # defined in the same file.
+    # defined in the same file.  To link the lazy_attr to source_file, set
+    # link_to_source_file.
     #
     # If you manually resolve the attribute before you access the method it
     # technically can be declared elsewhere, but this is not a recommended
@@ -162,18 +163,22 @@ module Lazydoc
     # syntax. Registration methods provided by Attributes are register___,
     # and lazy_register.  These too may be defined in multiple files.
     #
-    def lazy_attr(symbol, key=symbol.to_s, writable=true)
+    def lazy_attr(symbol, key=symbol.to_s, writable=true, link_to_source_file=false)
       key = case key
       when String, Symbol, Numeric, true, false, nil then key.inspect
       else "YAML.load(\'#{YAML.dump(key)}\')"
       end
       
-      caller[0] =~ CALLER_REGEXP
-      source_file = File.expand_path($1)
+      source_file = if link_to_source_file
+        'source_file'
+      else
+        caller[0] =~ CALLER_REGEXP
+        "'#{File.expand_path($1)}'"
+      end
       
       instance_eval %Q{
 def #{symbol}(resolve=true)
-  comment = const_attrs[#{key}] ||= Subject.new(nil, Lazydoc["#{source_file}"])
+  comment = const_attrs[#{key}] ||= Subject.new(nil, Lazydoc[#{source_file}])
   resolve && comment.kind_of?(Comment) ? comment.resolve : comment
 end}
 
