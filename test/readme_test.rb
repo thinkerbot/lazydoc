@@ -38,9 +38,6 @@ multiple lines...
     helpers_file_one = __FILE__.chomp("_test.rb") + "/helpers_one.rb"
     load(helpers_file_one)
     
-    doc = Helpers.lazydoc
-    doc.resolve
-
     one = Helpers.const_attrs[:method_one]
     assert_equal "method_one", one.method_name
     assert_equal ["a", "b='str'", "&c"], one.arguments

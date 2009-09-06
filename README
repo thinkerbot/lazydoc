@@ -59,8 +59,7 @@ particularly method definitions:
   # registered by method_two
   Helpers.const_attrs[:method_two] = Helpers.new.method_two
   
-  doc = Helpers.lazydoc
-  doc.resolve
+  Lazydoc[__FILE__].resolve
   
   one = Helpers.const_attrs[:method_one]
   one.method_name            # => "method_one"

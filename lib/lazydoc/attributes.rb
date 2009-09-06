@@ -9,7 +9,6 @@ module Lazydoc
   #     lazy_attr :key
   #   end
   #
-  #   ConstName.source_file            # =>  File.expand_path(__FILE__)
   #   ConstName::key.subject           # => 'value'
   # 
   # ==== Keys and Register
@@ -65,52 +64,55 @@ module Lazydoc
   # be registered from multiple source files.
   module Attributes
     
-    # The source file for the extended class.
+    # Returns the Documents registered to the extending class.
     # 
-    # By default source_file is set to the file where Attributes extends the
-    # class (if you include Attributes, you must set source_file manually).
-    # Classes that inherit from the extended class will set source_file to
-    # the file where inheritance first occurs.
+    # By default lazydocs contains a Document for the file where Attributes
+    # extends the class (if you include Attributes, you must set lazydocs
+    # manually).  Classes that inherit from the extended class will add a
+    # lazydoc for the file where inheritance first occurs.
     #
     # ==== Note
     # 
-    # Assigning source_file (and hence lazydoc) is useful but also a bit
+    # Assigning lazydocs is useful but also a bit
     # arbitrary.  Comments for the extended class may be spread over many
     # files unrelated to source_file.  Typically however, as is the case
     # when defining the actual class, it's a good practice to define all
     # coments in the same file and that file is usually defined as
     # source_file.
     #
-    attr_accessor :source_file
+    attr_accessor :lazydocs
     
     # Sets source_file as the file where Attributes first extends the class.
     def self.extended(base)
       caller[1] =~ CALLER_REGEXP
-      base.source_file ||= File.expand_path($1)
+      base.lazydocs ||= [Lazydoc[$1]]
       super
     end
     
     # Inherits registered_methods from parent to child.  Also registers the
     # source_file for the child as the file where the inheritance first occurs.
     def inherited(child)
-      unless child.source_file
+      unless child.lazydocs
         caller.each do |call|
           next if call =~ /in `inherited'$/
           
           call =~ CALLER_REGEXP
-          child.source_file = File.expand_path($1)
+          child.lazydocs = [Lazydoc[$1]]
           break
         end
       end
       
-      child.registered_methods.merge!(registered_methods)
       super
     end
     
     # Lazily registers the added method if marked for lazy registration.
     def method_added(sym)
-      if args = registered_methods[sym]
-        const_attrs[sym] ||= Lazydoc.register_caller(*args)
+      current = self
+      while current.kind_of?(Attributes)
+        if args = current.registered_methods[sym]
+          const_attrs[sym] ||= Lazydoc.register_caller(*args)
+        end
+        current = current.superclass
       end
       
       super
@@ -120,10 +122,14 @@ module Lazydoc
     def const_attrs
       Document[to_s]
     end
-
-    # Returns the Document for source_file.
-    def lazydoc
-      Lazydoc[source_file]
+    
+    def register_lazydoc(caller_index=0)
+      self.lazydocs ||= []
+      
+      caller[caller_index] =~ CALLER_REGEXP
+      lazydocs << Lazydoc[File.expand_path($1)]
+      lazydocs.uniq!
+      self
     end
     
     # A hash of (method_name, [comment_class, caller_index]) pairs indicating
@@ -163,29 +169,16 @@ module Lazydoc
     # syntax. Registration methods provided by Attributes are register___,
     # and lazy_register.  These too may be defined in multiple files.
     #
-    def lazy_attr(symbol, key=symbol.to_s, writable=true, link_to_source_file=false)
+    def lazy_attr(symbol, key=symbol.to_s, writable=true)
       key = case key
       when String, Symbol then key.inspect
       else raise "invalid class for a lazy_attr key: #{key.inspect} (#{key.class})"
       end
       
-      source_file = if link_to_source_file
-        'source_file'
-      else
-        caller[0] =~ CALLER_REGEXP
-        "'#{File.expand_path($1)}'"
-      end
+      register_lazydoc(1)
       
-      instance_eval %Q{
-def #{symbol}(resolve=true)
-  comment = const_attrs[#{key}] ||= Subject.new(nil, Lazydoc[#{source_file}])
-  resolve && comment.kind_of?(Comment) ? comment.resolve : comment
-end}
-
-      instance_eval(%Q{
-def #{symbol}=(comment)
-  const_attrs[#{key}] = comment
-end}) if writable
+      instance_eval %Q{def #{symbol}(resolve=true); seek_const_attr(#{key}, resolve); end}
+      instance_eval(%Q{def #{symbol}=(comment); const_attrs[#{key}] = comment; end}) if writable
     end
     
     # Marks the method for lazy registration.  When the method is registered,
@@ -200,6 +193,19 @@ end}) if writable
       source_file = File.expand_path($1)
       
       Lazydoc[source_file].register___(comment_class, 1)
+    end
+    
+    private
+    
+    def seek_const_attr(key, resolve, klass=self) # :nodoc:
+      klass.lazydocs.each {|doc| doc.resolve } if resolve
+      
+      if klass.const_attrs.has_key?(key)
+        klass.const_attrs[key]
+      else
+        klass = klass.superclass
+        klass.kind_of?(Attributes) ? seek_const_attr(key, resolve, klass) : nil
+      end
     end
   end
 end

@@ -18,3 +18,5 @@ end
 # *THIS* is the line that gets
 # registered by method_two
 Helpers.const_attrs[:method_two] = Helpers.new.method_two
+
+Lazydoc[__FILE__].resolve

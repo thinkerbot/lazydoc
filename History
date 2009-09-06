@@ -10,7 +10,8 @@
   the path relative to a matching LOAD_PATH
 * updated Lazydoc::Attributes to allow manually registered
   comments across multiple source files
-  
+* added inheritance for lazy attributes
+
 == 0.9.0 / 2009-05-25
 
 * lazy attributes can now be accessed without auto-resolve

@@ -9,6 +9,18 @@ class ConstName
 end
 
 class AttributesTest < Test::Unit::TestCase
+  # a module of classes used in multi-file tests
+  module Example
+  end
+  
+  def multiple_file_test(base)
+    pattern = __FILE__.chomp(".rb") + "/#{base}/*.rb"
+    Dir.glob(pattern).each do |file|
+      load(file)
+    end
+    
+    yield
+  end
   
   #
   # documentation test
@@ -41,7 +53,6 @@ class AttributesTest < Test::Unit::TestCase
   end
   
   def test_attributes_documentation
-    assert_equal File.expand_path(__FILE__), ConstName.source_file
     assert_equal 'value', ConstName::key.subject
     
     assert_equal "this is the method one comment", Sample.const_attrs[:method_one].comment
@@ -70,18 +81,17 @@ class AttributesTest < Test::Unit::TestCase
     extend Lazydoc::Attributes
   end
   
-  def test_lazydoc_returns_Document_registered_to_source_file
-    assert_equal File.expand_path(__FILE__), SourceFileClass.source_file
-    assert_equal Lazydoc[__FILE__], SourceFileClass.lazydoc
+  def test_lazydocs_returns_Documents_registered_to_class
+    assert_equal [Lazydoc[__FILE__]], SourceFileClass.lazydocs
   end
   
-  class SourceFileClassWithSourceFileSet
-    instance_variable_set(:@source_file, "src")
+  class SourceFileClassWithLazydocsSet
+    instance_variable_set(:@lazydocs, [])
     extend Lazydoc::Attributes
   end
   
-  def test_extend_does_not_set_source_file_if_already_set
-    assert_equal "src", SourceFileClassWithSourceFileSet.source_file
+  def test_extend_does_not_set_lazydocs_if_already_set
+    assert_equal [], SourceFileClassWithLazydocsSet.lazydocs
   end
   
   #
@@ -95,7 +105,7 @@ class AttributesTest < Test::Unit::TestCase
       include Lazydoc::Attributes
     end
     
-    self.source_file = __FILE__
+    register_lazydoc
     
     lazy_attr :lazy
     lazy_attr :alt, 'lazy'
@@ -113,22 +123,18 @@ class AttributesTest < Test::Unit::TestCase
   
   def test_lazy_attr_auto_resolves
     LazyAttrClass.const_attrs.clear
-    LazyAttrClass.lazydoc.resolved = false
+    LazyAttrClass.lazydocs.each {|doc| doc.resolved = false }
     
     lazy = LazyAttrClass.lazy
-    assert LazyAttrClass.lazydoc.resolved
     assert_equal "subject", lazy.to_s
     assert_equal "comment", lazy.comment
   end
   
-  def test_lazy_attr_does_not_resolve_unless_specified
+  def test_lazy_attr_does_not_auto_resolve_unless_specified
     LazyAttrClass.const_attrs.clear
-    LazyAttrClass.lazydoc.resolved = false
+    LazyAttrClass.lazydocs.each {|doc| doc.resolved = false }
     
-    lazy = LazyAttrClass.lazy(false)
-    assert !LazyAttrClass.lazydoc.resolved
-    assert_equal nil, lazy.subject
-    assert_equal [], lazy.content
+    assert_equal nil, LazyAttrClass.lazy(false)
   end
   
   def test_lazy_attr_maps_accessor_to_string_key
@@ -141,13 +147,9 @@ class AttributesTest < Test::Unit::TestCase
     assert !LazyAttrClass.respond_to?(:no_writer=)
   end
   
-  def test_lazy_attr_creates_new_Subject_for_unknown_attributes
+  def test_lazy_attr_returns_nil_for_unknown_attributes
     assert LazyAttrClass.const_attrs['unknown'] == nil
-    assert LazyAttrClass.unknown != nil
-    
-    assert_equal Lazydoc::Subject, LazyAttrClass.unknown.class
-    assert_equal '', LazyAttrClass.unknown.to_s
-    assert_equal '', LazyAttrClass.unknown.comment
+    assert_equal nil, LazyAttrClass.unknown
   end
   
   def test_lazy_attr_raises_error_for_unallowed_class_of_key
@@ -190,23 +192,22 @@ class AttributesTest < Test::Unit::TestCase
   end
   
   def test_lazy_register_registers_methods_as_they_are_defined
-    LazyRegisterClass.lazydoc.resolve
-    
     m = LazyRegisterClass.const_attrs[:lazy]
-
+    m.resolve
+    
     assert_equal Lazydoc::Method, m.class
     assert_equal "lazy", m.method_name
     assert_equal "comment", m.comment
     
     m = LazyRegisterClass.const_attrs[:delayed]
-
+    m.resolve
+    
     assert_equal Lazydoc::Method, m.class
     assert_equal "delayed", m.method_name
     assert_equal "delayed comment", m.comment
   end
   
   def test_lazy_register_does_not_overwrite_existing_const_attrs
-    LazyRegisterClass.lazydoc.resolve
     assert_equal "preset string", LazyRegisterClass.const_attrs[:conflict]
   end
   
@@ -229,61 +230,87 @@ class AttributesTest < Test::Unit::TestCase
     assert_equal "subclass comment", m.comment
   end
   
-  def test_lazy_register_registers_source_file_as_file_where_inheritance_first_occurs
-    assert_equal File.expand_path(__FILE__), LazyRegisterClass.source_file
-    assert_equal File.expand_path(__FILE__), LazyRegisterSubClass.source_file
+  class LazyRegisterParent
+    extend Lazydoc::Attributes
+  end
+  
+  class LazyRegisterChild < LazyRegisterParent
+  end
+  
+  class LazyRegisterParent
+    lazy_register :lazy
+  end
+  
+  class LazyRegisterChild
+    # subclass comment
+    def lazy
+    end
+  end
+  
+  def test_lazy_register_methods_propogate_to_children
+    m = LazyRegisterChild.const_attrs[:lazy]
+    m.resolve
     
-    assert !AttributesTest.const_defined?(:A)
-    assert !AttributesTest.const_defined?(:B)
+    assert_equal "lazy", m.method_name
+    assert_equal "subclass comment", m.comment
+  end
+  
+  def test_lazy_register_registers_lazydoc_for_file_where_inheritance_first_occurs
+    this_file = File.expand_path(__FILE__)
     
-    a = __FILE__.chomp(".rb") + "/a.rb"
-    b = __FILE__.chomp(".rb") + "/b.rb"
+    assert_equal [Lazydoc[this_file]], LazyRegisterClass.lazydocs
+    assert_equal [Lazydoc[this_file]], LazyRegisterSubClass.lazydocs
+    
+    assert !Example.const_defined?(:InheritanceA)
+    assert !Example.const_defined?(:InheritanceB)
+    
+    a = File.expand_path(__FILE__.chomp(".rb") + "/inheritance/a.rb")
+    b = File.expand_path(__FILE__.chomp(".rb") + "/inheritance/b.rb")
     
     load(a)
     load(b)
     
-    assert_equal File.expand_path(a), A.source_file
-    assert_equal File.expand_path(b), B.source_file
+    assert_equal [Lazydoc[a]], Example::InheritanceA.lazydocs
+    assert_equal [Lazydoc[b]], Example::InheritanceB.lazydocs
     
-    AttributesTest.send(:remove_const, :A)
-    AttributesTest.send(:remove_const, :B)
+    Example.send(:remove_const, :InheritanceA)
+    Example.send(:remove_const, :InheritanceB)
     
     load(b)
     
-    assert_equal File.expand_path(b), A.source_file
-    assert_equal File.expand_path(b), B.source_file
+    assert_equal [Lazydoc[b]], Example::InheritanceA.lazydocs
+    assert_equal [Lazydoc[b]], Example::InheritanceB.lazydocs
+  end
+  
+  def test_lazy_attrs_are_inherited_through_ancestry_if_left_undefined
+    multiple_file_test("ancestry") do
+      assert_equal "value for A", Example::AncestryA::one.to_s
+      assert_equal "value for A", Example::AncestryB::one.to_s
+      assert_equal "value for C", Example::AncestryC::one.to_s
+    end
   end
   
   #
   # multiple files tests
   #
   
-  def test_lazy_attrs_across_multiple_files
-    one = File.expand_path(__FILE__.chomp(".rb") + "/example_one.rb")
-    two = File.expand_path(__FILE__.chomp(".rb") + "/example_two.rb")
-    
-    load(one)
-    load(two)
-    
-    assert_equal "value for one", Example::one.to_s
-    assert_equal one, Example::one.document.source_file
-    
-    assert_equal "value for two", Example::two.to_s
-    assert_equal two, Example::two.document.source_file
-    
-    assert_equal "value for three", Example::three.to_s
-    assert_equal one, Example::three.document.source_file
-    
-    m1 = Example.const_attrs[:method_one]
-    assert_equal "method one comment", m1.comment
-    assert_equal one, m1.document.source_file
-    
-    m2 = Example.const_attrs[:method_two]
-    assert_equal "method two comment", m2.comment
-    assert_equal two, m2.document.source_file
-    
-    m3 = Example.const_attrs[:method_three]
-    assert_equal "method three comment", m3.comment
-    assert_equal two, m3.document.source_file
+  def test_lazy_attrs_defined_across_multiple_files
+    multiple_file_test("lazy_attr") do
+      assert_equal "value for one", Example::LazyAttr::one.to_s
+      assert_equal "value for two", Example::LazyAttr::two.to_s
+    end
+  end
+  
+  def test_register___across_multiple_files
+    multiple_file_test("register___") do
+      assert_equal "method one comment", Example::Register::one.to_s
+      assert_equal "method two comment", Example::Register::two.to_s
+    end
+  end
+
+  def test_register_method_across_multiple_files
+    multiple_file_test("register_method") do
+      assert_equal "method one comment", Example::RegisterMethod::one.to_s
+    end
   end
 end
