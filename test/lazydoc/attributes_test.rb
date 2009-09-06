@@ -150,6 +150,17 @@ class AttributesTest < Test::Unit::TestCase
     assert_equal '', LazyAttrClass.unknown.comment
   end
   
+  def test_lazy_attr_raises_error_for_unallowed_class_of_key
+    err = assert_raises(RuntimeError) do
+      Class.new do
+        extend Lazydoc::Attributes
+        lazy_attr :key, 2
+      end
+    end
+    
+    assert_equal "invalid class for a lazy_attr key: 2 (Fixnum)", err.message
+  end
+  
   #
   # lazy_register test
   #

@@ -165,8 +165,8 @@ module Lazydoc
     #
     def lazy_attr(symbol, key=symbol.to_s, writable=true, link_to_source_file=false)
       key = case key
-      when String, Symbol, Numeric, true, false, nil then key.inspect
-      else "YAML.load(\'#{YAML.dump(key)}\')"
+      when String, Symbol then key.inspect
+      else raise "invalid class for a lazy_attr key: #{key.inspect} (#{key.class})"
       end
       
       source_file = if link_to_source_file
