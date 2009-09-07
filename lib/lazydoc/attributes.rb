@@ -88,12 +88,27 @@ module Lazydoc
   # available to a lazy_attr.
   module Attributes
     
+    # Helper to initialize the attribute_ancestors, the inheritance hierarchy
+    # for base, which gets used in method_added and get_const_attr.  The
+    # logic of this approach is described in the dsl pattern:
+    #
+    #   http://gist.github.com/181961
+    #
+    def self.initialize(base) # :nodoc:
+      attributes_ancestors = base.ancestors.select do |ancestor|
+        ancestor.kind_of?(Attributes)
+      end
+      base.instance_variable_set(:@attributes_ancestors, attributes_ancestors)
+    end
+    
     # Sets source_file as the file where Attributes first extends the class.
     def self.extended(base)
       caller[1] =~ CALLER_REGEXP
       unless base.instance_variable_defined?(:@lazydocs)
         base.instance_variable_set(:@lazydocs, [Lazydoc[$1]])
       end
+      
+      Attributes.initialize(base)
       super
     end
     
@@ -143,7 +158,7 @@ module Lazydoc
       end
       
       key = key.inspect
-      instance_eval %Q{def #{symbol}(resolve=true); seek_const_attr(#{key}, resolve); end}
+      instance_eval %Q{def #{symbol}(resolve=true); get_const_attr(#{key}, resolve); end}
       instance_eval(%Q{def #{symbol}=(comment); const_attrs[#{key}] = comment; end}) if writable
       
       register_lazydoc(1)
@@ -178,44 +193,47 @@ module Lazydoc
         end
       end
       
+      Attributes.initialize(child)
       super
     end
     
     # Lazily registers the added method if marked for lazy registration.
     def method_added(sym)
-      current = self
-      while current.kind_of?(Attributes)
-        if args = current.registered_methods[sym]
-          const_attrs[sym] ||= Lazydoc.register_caller(*args)
-        end
-        current = current.superclass
+      current = @attributes_ancestors.find do |ancestor|
+        ancestor.registered_methods.has_key?(sym)
       end
-      
+    
+      if current
+        args = current.registered_methods[sym]
+        const_attrs[sym] ||= Lazydoc.register_caller(*args)
+      end
+    
       super
     end
-    
+  
     # helper to traverse up the inheritance hierarchy looking for the first
     # const_attr assigned to key.  the lazydocs for each class will be
     # resolved along the way, if specified.
-    def seek_const_attr(key, resolve, klass=self) # :nodoc:
-      if const_attr = klass.const_attrs[key]
+    def get_const_attr(key, resolve) # :nodoc:
+      @attributes_ancestors.each do |ancestor|
+        const_attrs = ancestor.const_attrs
+      
+        unless const_attrs.has_key?(key)
+          next unless resolve
+        
+          ancestor.lazydocs.each {|doc| doc.resolve }
+          next unless const_attrs.has_key?(key)
+        end
+      
+        const_attr = const_attrs[key]
         if resolve && const_attr.kind_of?(Comment)
           const_attr.resolve
         end
-        
+
         return const_attr
       end
-      
-      if resolve
-        klass.lazydocs.each {|doc| doc.resolve }
-      end
-      
-      if const_attr = klass.const_attrs[key]
-        const_attr
-      else
-        klass = klass.superclass
-        klass.kind_of?(Attributes) ? seek_const_attr(key, resolve, klass) : nil
-      end
+    
+      nil
     end
   end
 end
