@@ -78,15 +78,22 @@ class LazydocBenchmark < Test::Unit::TestCase
     lazy_register :method_name
   end
   
-  class RegisterMethodRef
-    extend Lazydoc::Attributes
-  end
-  
   class RegisterMethodSubA < RegisterMethod
   end
   class RegisterMethodSubB < RegisterMethodSubA
   end
   class RegisterMethodSubC < RegisterMethodSubB
+  end
+  
+  class NoRegisterMethod
+    extend Lazydoc::Attributes
+  end
+  
+  class NoRegisterMethodSubA < NoRegisterMethod
+  end
+  class NoRegisterMethodSubB < NoRegisterMethodSubA
+  end
+  class NoRegisterMethodSubC < NoRegisterMethodSubB
   end
   
   def test_register_methods_speed
@@ -114,7 +121,7 @@ class LazydocBenchmark < Test::Unit::TestCase
       
       x.report("no reg method") do 
         n.times do 
-          RegisterMethodRef.send(:define_method, :method_name, &block)
+          NoRegisterMethod.send(:define_method, :method_name, &block)
         end
       end
       
@@ -132,7 +139,7 @@ class LazydocBenchmark < Test::Unit::TestCase
       
       x.report("no reg method (subclass)") do 
         n.times do 
-          RegisterMethodSubC.send(:define_method, :method_name, &block)
+          NoRegisterMethodSubC.send(:define_method, :method_name, &block)
         end
       end
     end

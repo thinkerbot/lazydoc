@@ -94,6 +94,11 @@ module Lazydoc
       unless base.instance_variable_defined?(:@lazydocs)
         base.instance_variable_set(:@lazydocs, [Lazydoc[$1]])
       end
+      
+      unless base.instance_variable_defined?(:@registered_methods)
+        base.instance_variable_set(:@registered_methods, {})
+      end
+      
       super
     end
     
@@ -115,9 +120,7 @@ module Lazydoc
     
     # A hash of (method_name, [comment_class, caller_index]) pairs indicating
     # methods to lazily register, and the inputs used to register the method.
-    def registered_methods
-      @registered_methods ||= {}
-    end
+    attr_reader :registered_methods
     
     # Registers the calling file into lazydocs.  Registration occurs by
     # examining the call stack at the specified index.
@@ -176,6 +179,10 @@ module Lazydoc
           child.instance_variable_set(:@lazydocs, [Lazydoc[$1]])
           break
         end
+      end
+      
+      unless child.instance_variable_defined?(:@registered_methods)
+        child.instance_variable_set(:@registered_methods, {})
       end
       
       super
