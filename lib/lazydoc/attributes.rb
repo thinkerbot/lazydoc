@@ -88,27 +88,12 @@ module Lazydoc
   # available to a lazy_attr.
   module Attributes
     
-    # Helper to initialize the attribute_ancestors, the inheritance hierarchy
-    # for base, which gets used in method_added and get_const_attr.  The
-    # logic of this approach is described in the dsl pattern:
-    #
-    #   http://gist.github.com/181961
-    #
-    def self.initialize(base) # :nodoc:
-      attributes_ancestors = base.ancestors.select do |ancestor|
-        ancestor.kind_of?(Attributes)
-      end
-      base.instance_variable_set(:@attributes_ancestors, attributes_ancestors)
-    end
-    
     # Sets source_file as the file where Attributes first extends the class.
     def self.extended(base)
       caller[1] =~ CALLER_REGEXP
       unless base.instance_variable_defined?(:@lazydocs)
         base.instance_variable_set(:@lazydocs, [Lazydoc[$1]])
       end
-      
-      Attributes.initialize(base)
       super
     end
     
@@ -193,14 +178,30 @@ module Lazydoc
         end
       end
       
-      Attributes.initialize(child)
       super
+    end
+    
+    # Helper to traverse the inheritance hierarchy.  The logic of this method
+    # is described in the dsl pattern: http://gist.github.com/181961
+    def each_ancestor # :nodoc:
+      yield(self)
+      
+      blank, *ancestors = self.ancestors
+      ancestors.each do |ancestor|
+        yield(ancestor) if ancestor.kind_of?(Attributes)
+      end
+      
+      nil
     end
     
     # Lazily registers the added method if marked for lazy registration.
     def method_added(sym)
-      current = @attributes_ancestors.find do |ancestor|
-        ancestor.registered_methods.has_key?(sym)
+      current = nil
+      each_ancestor do |ancestor|
+        if ancestor.registered_methods.has_key?(sym)
+          current = ancestor
+          break
+        end
       end
     
       if current
@@ -215,7 +216,7 @@ module Lazydoc
     # const_attr assigned to key.  the lazydocs for each class will be
     # resolved along the way, if specified.
     def get_const_attr(key, resolve) # :nodoc:
-      @attributes_ancestors.each do |ancestor|
+      each_ancestor do |ancestor|
         const_attrs = ancestor.const_attrs
       
         unless const_attrs.has_key?(key)
@@ -232,8 +233,6 @@ module Lazydoc
 
         return const_attr
       end
-    
-      nil
     end
   end
 end

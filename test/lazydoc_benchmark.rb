@@ -82,6 +82,13 @@ class LazydocBenchmark < Test::Unit::TestCase
     extend Lazydoc::Attributes
   end
   
+  class RegisterMethodSubA < RegisterMethod
+  end
+  class RegisterMethodSubB < RegisterMethodSubA
+  end
+  class RegisterMethodSubC < RegisterMethodSubB
+  end
+  
   def test_register_methods_speed
     puts "test_register_methods_speed"
     Benchmark.bm(25) do |x|
@@ -108,6 +115,72 @@ class LazydocBenchmark < Test::Unit::TestCase
       x.report("no reg method") do 
         n.times do 
           RegisterMethodRef.send(:define_method, :method_name, &block)
+        end
+      end
+      
+      x.report("reg method (subclass)") do 
+        n.times do 
+          RegisterMethodSubC.send(:define_method, :method_name, &block)
+        end
+      end
+      
+      x.report("unreg method (subclass)") do 
+        n.times do 
+          RegisterMethodSubC.send(:define_method, :alt, &block)
+        end
+      end
+      
+      x.report("no reg method (subclass)") do 
+        n.times do 
+          RegisterMethodSubC.send(:define_method, :method_name, &block)
+        end
+      end
+    end
+  end
+  
+  # LazydocBenchmark::AccessSpeed::a value
+  class AccessSpeed
+    extend Lazydoc::Attributes
+    lazy_attr :a
+  end
+  
+  class AccessSpeedSubclassA < AccessSpeed
+  end
+  class AccessSpeedSubclassB < AccessSpeed
+  end
+  # LazydocBenchmark::AccessSpeedSubclassC::b value
+  class AccessSpeedSubclassC < AccessSpeed
+    lazy_attr :b
+  end
+  
+  def test_lazy_attr_access_speed
+    puts "test_lazy_attr_access_speed"
+    Benchmark.bm(25) do |x|
+      n = 100000
+      
+      x.report("object_id") do 
+        n.times do 
+          AccessSpeed.object_id
+        end
+      end
+      
+      AccessSpeed::a
+      x.report("AccessSpeed::a") do 
+        n.times do 
+          AccessSpeed::a
+        end
+      end
+      
+      AccessSpeedSubclassC::b
+      x.report("AccessSpeedSubclassC::a") do 
+        n.times do 
+          AccessSpeedSubclassC::a
+        end
+      end
+      
+      x.report("AccessSpeedSubclassC::b") do 
+        n.times do 
+          AccessSpeedSubclassC::b
         end
       end
     end
