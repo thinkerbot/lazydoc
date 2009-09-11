@@ -95,8 +95,8 @@ module Lazydoc
         base.instance_variable_set(:@lazydocs, [Lazydoc[$1]])
       end
       
-      unless base.instance_variable_defined?(:@registered_methods)
-        base.instance_variable_set(:@registered_methods, {})
+      unless base.instance_variable_defined?(:@lazy_registry)
+        base.instance_variable_set(:@lazy_registry, {})
       end
       
       super
@@ -111,6 +111,19 @@ module Lazydoc
     # Additional documents may be added by calling register_lazydoc.
     attr_reader :lazydocs
     
+    # Returns an array of the methods whose documentation will be automatically
+    # registered by Attributes.  Set as_registry to true to return a hash of
+    # of (method_name, [comment_class, caller_index]) pairs where the 
+    # registration arguments are the hash values.
+    def registered_methods(as_registry=false)
+      methods = {}
+      each_ancestor do |ancestor|
+        methods.merge!(ancestor.lazy_registry)
+      end
+      
+      as_registry ? methods : methods.keys
+    end
+    
     # Returns the constant attributes resolved for the extended class.
     def const_attrs
       Document[to_s]
@@ -120,7 +133,11 @@ module Lazydoc
     
     # A hash of (method_name, [comment_class, caller_index]) pairs indicating
     # methods to lazily register, and the inputs used to register the method.
-    attr_reader :registered_methods
+    #
+    # The lazy_registry only contains methods lazily registered within the
+    # current class or module.  To return methods registered throughout the
+    # inheritance hierarchy, use registered_methods(true)
+    attr_reader :lazy_registry
     
     # Registers the calling file into lazydocs.  Registration occurs by
     # examining the call stack at the specified index.
@@ -155,7 +172,7 @@ module Lazydoc
     # Marks the method for lazy registration.  When the method is registered,
     # it will be stored in const_attrs by method_name.
     def lazy_register(method_name, comment_class=Method, caller_index=1)
-      registered_methods[method_name.to_sym] = [comment_class, caller_index]
+      lazy_registry[method_name.to_sym] = [comment_class, caller_index]
     end
     
     # Manually registers the next comment into const_attrs.  Note a lazy_attr
@@ -168,8 +185,9 @@ module Lazydoc
     
     private
     
-    # Inherits registered_methods from parent to child.  Also registers the
-    # source_file for the child as the file where the inheritance first occurs.
+    # Inherits lazy_registry from parent to child.  Also registers the
+    # source_file for the child as the file where the inheritance first
+    # occurs.
     def inherited(child)
       unless child.instance_variable_defined?(:@lazydocs)
         caller.each do |call|
@@ -181,8 +199,8 @@ module Lazydoc
         end
       end
       
-      unless child.instance_variable_defined?(:@registered_methods)
-        child.instance_variable_set(:@registered_methods, {})
+      unless child.instance_variable_defined?(:@lazy_registry)
+        child.instance_variable_set(:@lazy_registry, {})
       end
       
       super
@@ -205,14 +223,14 @@ module Lazydoc
     def method_added(sym)
       current = nil
       each_ancestor do |ancestor|
-        if ancestor.registered_methods.has_key?(sym)
+        if ancestor.lazy_registry.has_key?(sym)
           current = ancestor
           break
         end
       end
     
       if current
-        args = current.registered_methods[sym]
+        args = current.lazy_registry[sym]
         const_attrs[sym] ||= Lazydoc.register_caller(*args)
       end
     

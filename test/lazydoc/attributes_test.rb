@@ -258,6 +258,9 @@ class AttributesTest < Test::Unit::TestCase
   end
   
   def test_lazy_register_methods_propogate_to_children
+    assert_equal [:lazy], LazyRegisterParent.registered_methods
+    assert_equal [:lazy], LazyRegisterChild.registered_methods
+    
     m = LazyRegisterChild.const_attrs[:lazy]
     m.resolve
     
