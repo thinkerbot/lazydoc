@@ -117,8 +117,10 @@ module Lazydoc
     # registration arguments are the hash values.
     def registered_methods(as_registry=false)
       methods = {}
-      each_ancestor do |ancestor|
-        methods.merge!(ancestor.lazy_registry)
+      ancestors.reverse.each do |ancestor|
+        if ancestor.kind_of?(Attributes)
+          methods.merge!(ancestor.lazy_registry)
+        end
       end
       
       as_registry ? methods : methods.keys

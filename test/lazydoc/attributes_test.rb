@@ -222,6 +222,33 @@ class AttributesTest < Test::Unit::TestCase
   end
   
   #
+  # registered_methods test
+  #
+  
+  class RegisterMethodsParent
+    extend Lazydoc::Attributes
+    lazy_register :a, Lazydoc::Method, 0
+    lazy_register :b, Lazydoc::Method, 0
+  end
+  
+  class RegisterMethodsChild < RegisterMethodsParent
+    lazy_register :b, Lazydoc::Method, 1
+  end
+  
+  
+  def test_registered_methods_as_registry_correctly_merges_parent_and_child_registrations
+    assert_equal({
+      :a => [Lazydoc::Method, 0],
+      :b => [Lazydoc::Method, 0]
+    }, RegisterMethodsParent.registered_methods(true))
+    
+    assert_equal({
+      :a => [Lazydoc::Method, 0],
+      :b => [Lazydoc::Method, 1]
+    }, RegisterMethodsChild.registered_methods(true))
+  end
+  
+  #
   # inherited test
   #
   
