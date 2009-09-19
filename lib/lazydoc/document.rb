@@ -40,9 +40,8 @@ module Lazydoc
   #   Document['Const::Name']['key'].value      # => 'value a'
   #   Document['Default']['key'].value          # => 'value b'
   #
-  # As shown in the example, constant attibutes for all documents are cached in
-  # the class-level const_attrs hash and are normally consumed through Document 
-  # itself.
+  # As in the example, constant attibutes for all documents may be accessed
+  # from Document[].
   class Document
     class << self
       

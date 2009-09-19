@@ -60,6 +60,26 @@ class AttributesTest < Test::Unit::TestCase
     end
   end
   
+  module A
+    extend Lazydoc::Attributes
+    lazy_attr(:one, :method_one)
+    lazy_register(:method_one)
+  
+    # documentation for method one
+    def method_one; end
+  end
+
+  class B
+    include A
+    extend Lazydoc::Attributes
+    lazy_attr(:one, :method_one)
+  end
+
+  class C < B
+    # overriding documentation for method one
+    def method_one; end
+  end
+  
   def test_attributes_documentation
     assert_equal 'value', ConstName::key.subject
     assert_equal 'value', SubclassA::key.subject
@@ -73,6 +93,10 @@ class AttributesTest < Test::Unit::TestCase
     
     assert_equal "this is the method one comment", Sample.const_attrs[:method_one].comment
     assert_equal "this is the method one comment", Paired.one.comment
+    
+    assert_equal "documentation for method one", A::one.comment
+    assert_equal "documentation for method one", B::one.comment
+    assert_equal "overriding documentation for method one", C::one.comment
   end
   
   #

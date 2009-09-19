@@ -20,6 +20,35 @@ module Lazydoc
   #   class SubclassB < ConstName; end
   #   SubclassB::key.subject                 # => 'overridden value'
   #
+  # You can use Attributes to register methods on modules, but currently the
+  # inheritance is a bit wonky; the accessors are methods on the extended
+  # class/module and so standard module inclusion will not pass them on.
+  # To work around you need to extend and redefine the accessors.
+  #
+  #   module A
+  #     extend Lazydoc::Attributes
+  #     lazy_attr(:one, :method_one)
+  #     lazy_register(:method_one)
+  #   
+  #     # documentation for method one
+  #     def method_one; end
+  #   end
+  # 
+  #   class B
+  #     include A
+  #     extend Lazydoc::Attributes
+  #     lazy_attr(:one, :method_one)
+  #   end
+  # 
+  #   class C < B
+  #     # overriding documentation for method one
+  #     def method_one; end
+  #   end
+  # 
+  #   A::one.comment    # => "documentation for method one"
+  #   B::one.comment    # => "documentation for method one"
+  #   C::one.comment    # => "overriding documentation for method one"
+  #   
   # ==== Keys and Register
   #
   # Constant attributes parsed from a source file will ALWAYS be stored in
@@ -38,8 +67,8 @@ module Lazydoc
   #     lazy_attr :alt, 'key'
   #   end
   #
-  #   ConstName::alt.subject                 # => 'value'
-  #   ConstName.const_attrs['alt']           # => nil
+  #   ConstName::alt.subject                     # => 'value'
+  #   ConstName.const_attrs['alt']               # => nil
   #
   # Comments specified by non-string keys may also be stored in const_attrs;
   # these will not conflict with constant attributes parsed from a source
@@ -56,7 +85,7 @@ module Lazydoc
   #     end
   #   end
   #
-  #   Sample.const_attrs[:method_one].comment   # => "this is the method one comment"
+  #   Sample.const_attrs[:method_one].comment    # => "this is the method one comment"
   # 
   # Manually-registered comments may then be paired with a lazy_attr.  As
   # before the key for the comment is provided in the definition.

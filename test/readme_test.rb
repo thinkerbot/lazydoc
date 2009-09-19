@@ -39,11 +39,13 @@ multiple lines...
     load(helpers_file_one)
     
     one = Helpers.const_attrs[:method_one]
+    one.resolve
     assert_equal "method_one", one.method_name
     assert_equal ["a", "b='str'", "&c"], one.arguments
     assert_equal "method_one is registered whenever it gets defined", one.to_s
     
     two = Helpers.const_attrs[:method_two]
+    two.resolve
     assert_equal "Helpers.const_attrs[:method_two] = Helpers.new.method_two", two.subject
     assert_equal "*THIS* is the line that gets registered by method_two", two.to_s
 
@@ -52,6 +54,13 @@ multiple lines...
     
     assert_equal "method_one", Helpers.one.method_name
     assert_equal "Helpers.const_attrs[:method_two] = Helpers.new.method_two", Helpers.two.subject
+    
+    helpers_file_three = __FILE__.chomp("_test.rb") + "/helpers_three.rb"
+    load(helpers_file_three)
+    
+    assert_equal "documentation for method one", ReadMeTestA::one.comment
+    assert_equal "documentation for method one", ReadMeTestB::one.comment
+    assert_equal "overriding documentation for method one", ReadMeTestC::one.comment
   end
   
   def test_constant_attributes_usage_documentation

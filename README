@@ -6,9 +6,8 @@ Tap[http://tap.rubyforge.org] framework.
 
 == Description
 
-Lazydoc allows you to define lazy attributes that act as markers for
-documentation in a source file.  When you call the lazy attribute,
-Lazydoc pulls out the documentation:
+Lazydoc allows you to define lazy attributes that access documentation in a
+source file.
 
   # Sample::key <value>
   # This is the comment content.  A content
@@ -35,8 +34,7 @@ Comments support wrapping, allowing for easy presentation:
   # ..............................
   # }
 
-In addition, Lazydoc provides helpers to register individual lines of code, 
-particularly method definitions:
+Lazydoc also provides helpers to register method documentation:
 
   class Helpers
     extend Lazydoc::Attributes
@@ -49,7 +47,7 @@ particularly method definitions:
     end
     
     # register_caller will register the line
-    # that *calls* method_two
+    # that *calls* method_two (see below)
     def method_two
       Lazydoc.register_caller
     end
@@ -59,18 +57,18 @@ particularly method definitions:
   # registered by method_two
   Helpers.const_attrs[:method_two] = Helpers.new.method_two
   
-  Lazydoc[__FILE__].resolve
-  
   one = Helpers.const_attrs[:method_one]
+  one.resolve
   one.method_name            # => "method_one"
   one.arguments              # => ["a", "b='str'", "&c"]
   one.to_s                   # => "method_one is registered whenever it gets defined"
   
   two = Helpers.const_attrs[:method_two]
+  two.resolve
   two.subject                # => "Helpers.const_attrs[:method_two] = Helpers.new.method_two"
   two.to_s                   # => "*THIS* is the line that gets registered by method_two"
 
-Lazy accessors may be defined to map the registered lines as well:
+Lazy accessors may be defined to access the registered lines more easily:
 
   class Helpers
     lazy_attr(:one, :method_one)
@@ -80,11 +78,10 @@ Lazy accessors may be defined to map the registered lines as well:
   Helpers.one.method_name    # => "method_one"
   Helpers.two.subject        # => "Helpers.const_attrs[:method_two] = Helpers.new.method_two"
 
-Check out these links for development, and bug tracking.
+Check out these links for developments and bug tracking.
 
 * Website[http://tap.rubyforge.org/lazydoc]
 * Github[http://github.com/bahuvrihi/lazydoc/tree/master]
-* Lighthouse[http://bahuvrihi.lighthouseapp.com/projects/19948-lazydoc/tickets?q=all]
 * {Google Group}[http://groups.google.com/group/ruby-on-tap]
 
 == Usage
@@ -95,9 +92,9 @@ are represented by Comment objects.
 
 === Constant Attributes
 
-Constant attributes are like constants in Ruby, but with an extra 'key' 
-that must consist of only lowercase letters and/or underscores.  For 
-example, these are constant attributes:
+Constant attributes are defined in the documentation to look like constants,
+but with an extra 'key' that must consist of only lowercase letters and/or
+underscores. For example, these are constant attributes:
 
   # Const::Name::key
   # Const::Name::key_with_underscores
@@ -110,7 +107,7 @@ While these are not:
   # Const::Name::k@y
 
 Lazydoc parses a Lazydoc::Comment for each constant attribute by using the 
-remainder of the line as a value (ie subject) and parsing down for content.
+remainder of the line as a value (ie subject) and trailing lines as content.
 Parsing continues until a non-comment line, an end key, or a new attribute
 is reached; the comment is then stored by constant name and key.
 
@@ -138,8 +135,8 @@ is reached; the comment is then stored by constant name and key.
   #   'another' => ['value for another', 'comment for another parsed to an end key']}
   # }
 
-Constant attributes are only parsed from commented lines.  To turn off
-attribute parsing for a section of documentation, use start/stop keys:
+Constant attributes are only parsed from comment lines. To turn off attribute
+parsing for a section of documentation, use start/stop keys:
 
   str = %Q{
   Const::Name::not_parsed
@@ -154,9 +151,9 @@ attribute parsing for a section of documentation, use start/stop keys:
   doc.resolve(str)
   doc.summarize {|comment| comment.value }   # => {'Const::Name' => {'parsed' => 'value'}}
 
-To hide attributes from RDoc, make use of the RDoc <tt>:startdoc:</tt> 
-document modifier like this (note that spaces are added to prevent RDoc
-from hiding the example):
+To hide attributes from RDoc, make use of the RDoc <tt>:startdoc:</tt>
+document modifier like this (note the modifiers have an extra space in them to
+prevent RDoc from hiding the example):
 
   # :start doc::Const::Name::one hidden in RDoc
   # * This line is visible in RDoc.
@@ -170,16 +167,17 @@ from hiding the example):
   #
   # * This line is also visible in RDoc.
 
-As a side note, 'Const::Name::key' is not a reference to the 'key' 
-constant (that would be invalid).  In *very* idiomatic ruby
-'Const::Name::key' is equivalent to the method call 'Const::Name.key'.
+As a side note, the constant attribute syntax is designed to echo how the
+Lazydoc::Attributes module makes comments accessible in code. In *very*
+idiomatic Ruby 'Const::Name::key' is equivalent to the method call
+'Const::Name.key'.
 
 === Code Comments
 
-Code comments are lines registered for parsing if and when a Lazydoc gets 
+Code comments are lines registered for parsing if and when a Lazydoc gets
 resolved. Unlike constant attributes, the registered line is the comment
-subject (ie value) and contents are parsed up from it (basically mimicking
-the behavior of RDoc).
+subject (ie value) and the content consists of the preceding documentation
+(basically mimicking the behavior of RDoc).
 
   str = %Q{
   # comment lines for
@@ -209,6 +207,31 @@ Regexp that will determine the line number during resolution.  In the case
 of a Regexp, the first matching line is used; Procs receive an array of
 lines and should return the line number that should be used.  See 
 {Comment#parse_up}[link://classes/Lazydoc/Comment.html] for more details.
+
+Manually registering lines for documentation can be quite cumbersome. The
+Lazydoc::Attributes module provides helpers to register method documentation
+on classes with method-like inheritance.
+
+  class A
+    extend Lazydoc::Attributes
+    lazy_attr(:one, :method_one)
+    lazy_register(:method_one)
+    
+    # documentation for method one
+    def method_one; end
+  end
+  
+  class B < A
+  end
+  
+  class C < B
+    # overriding documentation for method one
+    def method_one; end
+  end
+  
+  A::one.comment    # => "documentation for method one"
+  B::one.comment    # => "documentation for method one"
+  C::one.comment    # => "overriding documentation for method one"
 
 == Installation
 

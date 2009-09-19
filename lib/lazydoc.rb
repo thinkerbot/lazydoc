@@ -8,15 +8,15 @@ module Lazydoc
     @registry ||= []
   end
   
-  # Returns the Document in registry for the specified source file, or nil
-  # if no such document exists.
+  # Returns the document registered to the source file, or nil if no such
+  # document exists.
   def document(source_file)
     source_file = File.expand_path(source_file.to_s)
     registry.find {|doc| doc.source_file == source_file }
   end
   
-  # Returns the Document in registry for the specified source file.
-  # If no such Document exists, one will be created for it.
+  # Returns the document registered to the source file.  If no such document
+  # exists, one will be created for it.
   def [](source_file)
     document(source_file) || register_file(source_file)
   end
@@ -50,8 +50,8 @@ module Lazydoc
     relative_path.gsub(/\/(.?)/) { "::" + $1.upcase }.gsub(/(^|_)(.)/) { $2.upcase }
   end
   
-  # Generates a Document the source_file and default_const_name and adds it to
-  # registry, or returns the document already registered to source_file.  An
+  # Generates a document for the source_file and default_const_name and adds it to
+  # registry, or returns the document already registered to the source file.  An
   # error is raised if you try to re-register a source_file with an inconsistent
   # default_const_name.
   def register_file(source_file, default_const_name=guess_const_name(source_file))
@@ -64,16 +64,15 @@ module Lazydoc
     lazydoc
   end
 
-  # Registers the line number to the document for source_file and
-  # returns the corresponding comment.
+  # Registers the line number to the document for source_file and returns the
+  # new comment.
   def register(source_file, line_number, comment_class=Comment)
     Lazydoc[source_file].register(line_number, comment_class)
   end
   
-  # Registers the method at the specified index in the call stack to
-  # the file where the method was called.  Using the default index of
-  # 1, register_caller registers the caller of the method where 
-  # register_caller is called (whew!).  For instance:
+  # Registers the method to the line where it was called.  To do so,
+  # register_caller examines the specified index in the call stack
+  # and extracts a file and line number.  For instance:
   #
   #   module Sample
   #     module_function
