@@ -149,7 +149,9 @@ Ignored::key value
 # Name::Space::key value2
 # Name::Space::key value3
 # ::key
-# Name::Space::key1 value4
+# Name::Space::
+# Name::Space:: value4
+# Name::Space::key1 value5
 }, "key") do |namespace, key, value|
      results << [namespace, key, value]
    end
@@ -384,6 +386,8 @@ end
     doc.resolve %Q{
     # Skipped::Key
     # skipped::Key
+    # Skipped::
+    # Skipped:: key
     # :skipped:
     # skipped
     skipped

@@ -23,7 +23,8 @@ module Lazydoc
   # You can use Attributes to register methods on modules, but currently the
   # inheritance is a bit wonky; the accessors are methods on the extended
   # class/module and so standard module inclusion will not pass them on.
-  # To work around you need to extend and redefine the accessors.
+  # To work around you need to extend and redefine the accessors.  Note,
+  # however, that methods do not need to be re-registered.
   #
   #   module A
   #     extend Lazydoc::Attributes
