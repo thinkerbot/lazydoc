@@ -1,3 +1,4 @@
+require 'lazydoc/version'
 require 'lazydoc/document'
 
 module Lazydoc
