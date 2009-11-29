@@ -1,4 +1,4 @@
-==
+== 1.0.0 / 2009-10-29
 
 * optimized regexps
 * updated Lazydoc::Attributes to automatically set source_file
