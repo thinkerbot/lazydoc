@@ -235,12 +235,11 @@ on classes with method-like inheritance.
 
 == Installation
 
-Lazydoc is available as a gem on RubyForge[http://rubyforge.org/projects/tap].  Use:
+Lazydoc is available as a gem on Gemcutter[http://gemcutter.org/gems/lazydoc].
 
   % gem install lazydoc
 
-== Info 
+== Info
 
-Copyright (c) 2009, Simon Chiang.
 Developer:: {Simon Chiang}[http://bahuvrihi.wordpress.com]
 License:: {MIT-Style}[link:files/MIT-LICENSE.html]
