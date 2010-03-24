@@ -120,7 +120,7 @@ module Lazydoc
     
     # Sets source_file as the file where Attributes first extends the class.
     def self.extended(base)
-      caller[1] =~ CALLER_REGEXP
+      caller[0] =~ CALLER_REGEXP
       unless base.instance_variable_defined?(:@lazydocs)
         base.instance_variable_set(:@lazydocs, [Lazydoc[$1]])
       end
