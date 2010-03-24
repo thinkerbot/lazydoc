@@ -45,7 +45,7 @@ module Lazydoc
     
     return nil if load_paths.empty?
     
-    load_path = load_paths.sort_by {|load_path| load_path.length}.pop
+    load_path = load_paths.sort_by {|path| path.length }.pop
     extname = File.extname(source_file)
     relative_path = source_file[(load_path.length + 1)..(-1 - extname.length)]
     relative_path.gsub(/\/(.?)/) { "::" + $1.upcase }.gsub(/(^|_)(.)/) { $2.upcase }
