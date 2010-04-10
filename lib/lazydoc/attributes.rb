@@ -141,6 +141,14 @@ module Lazydoc
     # Additional documents may be added by calling register_lazydoc.
     attr_reader :lazydocs
     
+    # A hash of (method_name, [comment_class, caller_index]) pairs indicating
+    # methods to lazily register, and the inputs used to register the method.
+    #
+    # The lazy_registry only contains methods lazily registered within the
+    # current class or module.  To return methods registered throughout the
+    # inheritance hierarchy, use registered_methods(true)
+    attr_reader :lazy_registry
+    
     # Returns an array of the methods whose documentation will be automatically
     # registered by Attributes.  Set as_registry to true to return a hash of
     # of (method_name, [comment_class, caller_index]) pairs where the 
@@ -162,14 +170,6 @@ module Lazydoc
     end
     
     protected
-    
-    # A hash of (method_name, [comment_class, caller_index]) pairs indicating
-    # methods to lazily register, and the inputs used to register the method.
-    #
-    # The lazy_registry only contains methods lazily registered within the
-    # current class or module.  To return methods registered throughout the
-    # inheritance hierarchy, use registered_methods(true)
-    attr_reader :lazy_registry
     
     # Registers the calling file into lazydocs.  Registration occurs by
     # examining the call stack at the specified index.
