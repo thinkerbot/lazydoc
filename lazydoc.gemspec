@@ -1,15 +1,18 @@
+$:.unshift File.expand_path('../lib', __FILE__)
+require 'lazydoc/version'
+
 Gem::Specification.new do |s|
-  s.name = "lazydoc"
-  s.version = "1.0"
-  s.author = "Simon Chiang"
-  s.email = "simon.a.chiang@gmail.com"
-  s.homepage = "http://tap.rubyforge.org/lazydoc"
+  s.name = 'lazydoc'
+  s.version = Lazydoc::VERSION
+  s.author = 'Simon Chiang'
+  s.email = 'simon.a.chiang@gmail.com'
+  s.homepage = 'http://tap.rubyforge.org/lazydoc'
   s.platform = Gem::Platform::RUBY
-  s.summary = "Lazily pull documentation out of source files."
-  s.require_path = "lib"
-  s.rubyforge_project = "tap"
+  s.summary = 'Lazily pull documentation out of source files.'
+  s.require_path = 'lib'
+  s.rubyforge_project = 'tap'
   s.has_rdoc = true
-  s.rdoc_options.concat %w{--title Lazydoc --main README --line-numbers --inline-source}
+  s.rdoc_options.concat %w{--main README -S -N --title Lazydoc}
 
   # list extra rdoc files here.
   s.extra_rdoc_files = %W{

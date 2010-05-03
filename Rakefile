@@ -9,11 +9,8 @@ require 'rake/gempackagetask'
 
 def gemspec
   require 'rubygems/specification'
-  
-  data = File.read('lazydoc.gemspec')
-  spec = nil
-  Thread.new { spec = eval("$SAFE = 3\n#{data}") }.join
-  spec
+  path = File.expand_path('lazydoc.gemspec')
+  eval(File.read(path), binding, path, 0)
 end
 
 Rake::GemPackageTask.new(gemspec) do |pkg|
@@ -34,16 +31,16 @@ task :print_manifest do
   # and add to the files list if they are not
   # included already (marking by the absence
   # of a label)
-  Dir.glob("**/*").each do |file|
-    next if file =~ /^(rdoc|pkg|backup|test)/ || File.directory?(file)
+  Dir.glob('**/*').each do |file|
+    next if file =~ /^(rdoc|pkg|backup|test|.*\.rbc)/ || File.directory?(file)
     
     path = File.expand_path(file)
-    files[path] = ["", file] unless files.has_key?(path)
+    files[path] = ['', file] unless files.has_key?(path)
   end
   
   # sort and output the results
   files.values.sort_by {|exists, file| file }.each do |entry| 
-    puts "%-5s %s" % entry
+    puts '%-5s %s' % entry
   end
 end
 
@@ -56,23 +53,21 @@ Rake::RDocTask.new(:rdoc) do |rdoc|
   spec = gemspec
   
   rdoc.rdoc_dir = 'rdoc'
-  rdoc.title    = 'Lazydoc'
-  rdoc.main     = 'README'
-  rdoc.options << '--line-numbers' << '--inline-source'
+  rdoc.options.concat spec.rdoc_options
   rdoc.rdoc_files.include( spec.extra_rdoc_files )
   rdoc.rdoc_files.include( spec.files.select {|file| file =~ /^lib.*\.rb$/} )
 end
 
-desc "Publish RDoc to RubyForge"
+desc 'Publish RDoc to RubyForge'
 task :publish_rdoc => [:rdoc] do
   require 'yaml'
   
-  config = YAML.load(File.read(File.expand_path("~/.rubyforge/user-config.yml")))
-  host = "#{config["username"]}@rubyforge.org"
+  config = YAML.load(File.read(File.expand_path('~/.rubyforge/user-config.yml')))
+  host = "#{config['username']}@rubyforge.org"
   
-  rsync_args = "-v -c -r"
-  remote_dir = "/var/www/gforge-projects/tap/lazydoc"
-  local_dir = "rdoc"
+  rsync_args = '-v -c -r'
+  remote_dir = '/var/www/gforge-projects/tap/lazydoc'
+  local_dir = 'rdoc'
  
   sh %{rsync #{rsync_args} #{local_dir}/ #{host}:#{remote_dir}}
 end
