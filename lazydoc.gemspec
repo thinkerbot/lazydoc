@@ -1,5 +1,6 @@
 $:.unshift File.expand_path('../lib', __FILE__)
 require 'lazydoc/version'
+$:.shift
 
 Gem::Specification.new do |s|
   s.name = 'lazydoc'
